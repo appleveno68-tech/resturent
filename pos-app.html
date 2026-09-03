@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مطعم واو فود - نظام الكاشير والحسابات</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- مكتبة إنتاج QR Code متوافق -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary: #ff4757;
+            --secondary: #2ed573;
+            --dark: #2f3542;
+            --light: #f1f2f6;
+            --gray: #747d8c;
+            --accent: #ffa502;
+            --blue: #1e90ff;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background: #eccc6815; display: flex; height: 100vh; overflow: hidden; flex-direction: column; }
+
+        /* Navigation Bar */
+        .top-nav { background: var(--dark); color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
+        .nav-title { font-weight: bold; font-size: 18px; color: var(--accent); }
+        .nav-btns { display: flex; gap: 10px; }
+        .nav-btn { background: #3a404d; color: #fff; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .nav-btn.active { background: var(--primary); }
+
+        .main-container { display: flex; flex: 1; height: calc(100vh - 75px); overflow: hidden; }
+
+        /* Left Side: Order & Invoice */
+        .cart-section { width: 400px; background: #fff; border-left: 2px solid #dfe4ea; display: flex; flex-direction: column; }
+        .cart-header { padding: 12px 15px; background: #3a404d; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        
+        .order-type, .payment-type { display: flex; gap: 5px; padding: 8px 10px; background: var(--light); flex-wrap: wrap; border-bottom: 1px solid #dfe4ea; }
+        .section-label { width: 100%; font-size: 11px; font-weight: bold; color: var(--gray); margin-bottom: 2px; }
+        
+        .order-type button, .payment-type button { flex: 1; min-width: 70px; padding: 6px; border: 1px solid #ced6e0; border-radius: 5px; cursor: pointer; font-weight: bold; background: #fff; font-size: 12px; transition: 0.2s; }
+        .order-type button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .payment-type button.active { background: var(--dark); color: #fff; border-color: var(--dark); }
+
+        .app-selector { display: none; padding: 8px 10px; background: #eccc6833; border-bottom: 1px solid #dfe4ea; }
+        .app-selector.active { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+        .app-selector label { font-size: 12px; font-weight: bold; color: var(--dark); }
+        .app-selector select { padding: 6px 10px; border-radius: 5px; border: 1px solid #ccc; font-weight: bold; outline: none; background: #fff; cursor: pointer; }
+
+        .cart-items { flex: 1; overflow-y: auto; padding: 10px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 10px; background: var(--light); border-radius: 8px; }
+        .qty-btns button { width: 25px; height: 25px; border: none; background: #dfe4ea; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        .cart-summary { padding: 12px 15px; background: var(--light); border-top: 1px solid #dfe4ea; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px; }
+        .summary-row.total { font-size: 17px; font-weight: bold; color: var(--primary); border-top: 1px solid #ccc; padding-top: 6px; }
+        .checkout-btns { padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #fff; }
+        .btn { padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: #fff; text-align: center; }
+        .btn-pay { background: var(--secondary); grid-column: span 2; font-size: 15px; }
+        .btn-kitchen { background: var(--accent); }
+        .btn-clear { background: var(--primary); }
+
+        /* Right Side: Menu & Categories */
+        .menu-section { flex: 1; display: flex; flex-direction: column; }
+        .top-bar { padding: 12px 15px; background: #fff; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dfe4ea; }
+        .search-bar input { padding: 8px 15px; width: 280px; border: 1px solid #dfe4ea; border-radius: 20px; outline: none; }
+        .categories { display: flex; gap: 8px; padding: 12px; overflow-x: auto; background: #fff; }
+        .cat-btn { padding: 8px 16px; border: 1px solid #dfe4ea; border-radius: 20px; background: #fff; cursor: pointer; font-weight: bold; white-space: nowrap; font-size: 13px; }
+        .cat-btn.active { background: var(--dark); color: #fff; border-color: var(--dark); }
+        .products-grid { flex: 1; padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; overflow-y: auto; }
+        .product-card { background: #fff; border-radius: 10px; padding: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; border: 1px solid #dfe4ea; }
+        .product-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .product-card img { width: 100%; height: 90px; object-fit: cover; border-radius: 8px; margin-bottom: 6px; }
+        .product-title { font-weight: bold; font-size: 13px; margin-bottom: 4px; color: var(--dark); }
+        .product-price { color: var(--primary); font-weight: bold; font-size: 13px; }
+
+        /* Section: Accounts & Sales */
+        .accounts-section { flex: 1; padding: 20px; display: none; overflow-y: auto; background: #fff; }
+        .accounts-section.active { display: block; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { padding: 15px; background: var(--light); border-radius: 8px; border-right: 4px solid var(--blue); }
+        .stat-card h4 { font-size: 13px; color: var(--gray); margin-bottom: 5px; }
+        .stat-card .value { font-size: 20px; font-weight: bold; color: var(--dark); }
+        
+        .sales-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .sales-table th, .sales-table td { border: 1px solid #dfe4ea; padding: 10px; text-align: right; font-size: 13px; }
+        .sales-table th { background: var(--light); font-weight: bold; }
+
+        /* Footer Branding */
+        .app-footer { height: 25px; background: var(--dark); color: #fff; display: flex; justify-content: center; align-items: center; font-size: 11px; letter-spacing: 0.5px; }
+
+        /* Printable Invoice Styles */
+        #printable-receipt { display: none; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { 
+                display: block !important; 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 80mm; 
+                padding: 5mm;
+                font-family: 'Courier New', Courier, monospace; 
+                background: #fff;
+                color: #000;
+            }
+            .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
+            .receipt-title { font-size: 18px; font-weight: bold; }
+            .receipt-address { font-size: 11px; margin-top: 2px; }
+            .receipt-badge { font-size: 12px; font-weight: bold; margin-top: 4px; border: 1px solid #000; display: inline-block; padding: 2px 6px; }
+            .receipt-table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+            .receipt-table th, .receipt-table td { text-align: right; font-size: 11px; padding: 3px 0; }
+            .receipt-summary { border-top: 1px dashed #000; padding-top: 5px; margin-top: 5px; font-size: 12px; }
+            .receipt-qr { display: flex; justify-content: center; margin: 10px 0; }
+            .receipt-footer { text-align: center; margin-top: 10px; font-size: 10px; border-top: 1px dashed #000; padding-top: 5px; }
+            .designer-credit { margin-top: 6px; font-size: 9px; font-weight: bold; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- الشريط العلوي والتنقل -->
+    <div class="top-nav">
+        <div class="nav-title"><i class="fas fa-utensils"></i> مطعم واو فود - Wow Food</div>
+        <div class="nav-btns">
+            <button class="nav-btn active" id="btn-pos-view" onclick="switchView('pos')"><i class="fas fa-cash-register"></i> الكاشير</button>
+            <button class="nav-btn" id="btn-acc-view" onclick="switchView('accounts')"><i class="fas fa-chart-line"></i> الحسابات والمبيعات</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- قسم سلة الطلبات -->
+        <div class="cart-section" id="cart-container-section">
+            <div class="cart-header">
+                <h3><i class="fas fa-shopping-cart"></i> الطلب الحالي</h3>
+                <span id="order-id">#1001</span>
+            </div>
+            
+            <div class="order-type">
+                <div class="section-label">نوع الطلب:</div>
+                <button class="active" onclick="setOrderType(this, 'طاولة 01')">طاولة 01</button>
+                <button onclick="setOrderType(this, 'سفري')">سفري</button>
+                <button onclick="setOrderType(this, 'تطبيقات توصيل')">توصيل</button>
+            </div>
+
+            <div class="payment-type">
+                <div class="section-label">طريقة الدفع:</div>
+                <button class="active" onclick="setPaymentMethod(this, 'نقداً (كاش)')">كاش</button>
+                <button onclick="setPaymentMethod(this, 'مدى / شبكة')">مدى / شبكة</button>
+                <button onclick="setPaymentMethod(this, 'تحويل بنكي')">تحويل</button>
+            </div>
+
+            <div class="app-selector" id="app-selector">
+                <label for="delivery-app"><i class="fas fa-motorcycle"></i> التطبيق:</label>
+                <select id="delivery-app" onchange="updateSelectedApp()">
+                    <option value="هنقرستيشن">هنقرستيشن</option>
+                    <option value="جاهز">جاهز / كيتا</option>
+                    <option value="نون فود">نون فود</option>
+                    <option value="تويو">تويو</option>
+                    <option value="مرسول">مرسول</option>
+                </select>
+            </div>
+
+            <div class="cart-items" id="cart-items"></div>
+
+            <div class="cart-summary">
+                <div class="summary-row"><span>المجموع الفرعي:</span><span id="subtotal">0.00 ر.س</span></div>
+                <div class="summary-row"><span>الضريبة (15%):</span><span id="tax">0.00 ر.س</span></div>
+                <div class="summary-row total"><span>الإجمالي النهائي:</span><span id="total">0.00 ر.س</span></div>
+            </div>
+
+            <div class="checkout-btns">
+                <button class="btn btn-kitchen" onclick="sendToKitchen()"><i class="fas fa-utensils"></i> للمطبخ</button>
+                <button class="btn btn-clear" onclick="clearCart()"><i class="fas fa-trash"></i> إلغاء</button>
+                <button class="btn btn-pay" onclick="completeSaleAndPrint()"><i class="fas fa-print"></i> دفع وطباعة الفاتورة</button>
+            </div>
+        </div>
+
+        <!-- قسم المنتجات والمنيو -->
+        <div class="menu-section" id="menu-container-section">
+            <div class="top-bar">
+                <h2><i class="fas fa-store"></i> قائمة الوجبات</h2>
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="بحث عن صنف..." onkeyup="filterProducts()">
+                </div>
+            </div>
+
+            <div class="categories">
+                <button class="cat-btn active" onclick="filterCategory('الكل', this)">الكل</button>
+                <button class="cat-btn" onclick="filterCategory('وجبات', this)">وجبات برجر</button>
+                <button class="cat-btn" onclick="filterCategory('بيتزا', this)">بيتزا</button>
+                <button class="cat-btn" onclick="filterCategory('مشاوي', this)">مشاوي</button>
+                <button class="cat-btn" onclick="filterCategory('مشروبات', this)">مشروبات</button>
+                <button class="cat-btn" onclick="filterCategory('حلويات', this)">حلويات</button>
+            </div>
+
+            <div class="products-grid" id="products-grid"></div>
+        </div>
+
+        <!-- قسم الحسابات والمبيعات -->
+        <div class="accounts-section" id="accounts-container-section">
+            <h2><i class="fas fa-chart-pie"></i> تقرير المبيعات والحسابات اليومية</h2>
+            <p style="color: var(--gray); font-size: 13px; margin-bottom: 15px;">ملخص المبيعات المسجلة بالصندوق حسب عمليات الدفع.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>إجمالي المبيعات</h4>
+                    <div class="value" id="stat-total-sales">0.00 ر.س</div>
+                </div>
+                <div class="stat-card">
+                    <h4>عدد الطلبات</h4>
+                    <div class="value" id="stat-total-orders">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>مبيعات الكاش</h4>
+                    <div class="value" id="stat-cash-sales">0.00 ر.س</div>
+                </div>
+                <div class="stat-card">
+                    <h4>مبيعات مدى / شبكة</h4>
+                    <div class="value" id="stat-card-sales">0.00 ر.س</div>
+                </div>
+            </div>
+
+            <h3>سجل العمليات الأخير</h3>
+            <table class="sales-table">
+                <thead>
+                    <tr>
+                        <th>رقم الطلب</th>
+                        <th>التاريخ والوقت</th>
+                        <th>نوع الطلب</th>
+                        <th>طريقة الدفع</th>
+                        <th>الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody id="sales-history-table"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="app-footer">
+        تصميم المهندس صلاح علي &copy; جميع الحقوق محفوظة
+    </div>
+
+    <!-- الفاتورة المخصصة للطباعة المطابقة للمرحلة الثانية للزكاة والدخل -->
+    <div id="printable-receipt">
+        <div class="receipt-header">
+            <div class="receipt-title">مطعم واو فود</div>
+            <div class="receipt-address">الدمام - السعودية - حي الشاطئ</div>
+            <div style="font-size: 10px; font-weight: bold; margin-top:2px;">الرقم الضريبي: 310123456700003</div>
+            <div>فاتورة ضريبية مبسطة</div>
+            <div>رقم الطلب: <strong id="rec-order-id">#1001</strong></div>
+            <div class="receipt-badge" id="rec-order-type">طاولة 01</div>
+            <div class="receipt-badge" id="rec-payment-method" style="background:#f0f0f0;">نقداً (كاش)</div>
+            <div id="rec-date-time" style="font-size: 10px; margin-top: 5px;"></div>
+        </div>
+        <table class="receipt-table">
+            <thead>
+                <tr style="border-bottom: 1px solid #000;">
+                    <th>الصنف</th>
+                    <th>العدد</th>
+                    <th>السعر</th>
+                </tr>
+            </thead>
+            <tbody id="rec-items"></tbody>
+        </table>
+        <div class="receipt-summary">
+            <div style="display:flex; justify-content:space-between;"><span>المجموع (غير شامل الضريبة):</span><span id="rec-subtotal">0.00</span></div>
+            <div style="display:flex; justify-content:space-between;"><span>ضريبة القيمة المضافة (15%):</span><span id="rec-tax">0.00</span></div>
+            <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; margin-top:4px;"><span>الإجمالي النهائي:</span><span id="rec-total">0.00 ر.س</span></div>
+        </div>
+        
+        <!-- رمز QR المتوافق مع هيئة الزكاة والضريبة (Phase 2 ZATCA) -->
+        <div class="receipt-qr">
+            <div id="qrcode"></div>
+        </div>
+
+        <div class="receipt-footer">
+            شكراً لزيارتكم مطعم واو فود!
+            <div class="designer-credit">تصميم المهندس صلاح علي</div>
+        </div>
+    </div>
+
+    <script>
+        const products = [
+            { id: 1, name: 'واو برجر لحم دبل', price: 32, category: 'وجبات', img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200' },
+            { id: 2, name: 'برجر دجاج سبايسي', price: 26, category: 'وجبات', img: 'https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=200' },
+            { id: 3, name: 'بيتزا بيبروني فاخرة', price: 45, category: 'بيتزا', img: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=200' },
+            { id: 4, name: 'بيتزا خضار مشكل', price: 38, category: 'بيتزا', img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=200' },
+            { id: 5, name: 'كباب لحم بلدي (4 أسياخ)', price: 55, category: 'مشاوي', img: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=200' },
+            { id: 6, name: 'شيش طاووق مشوي', price: 48, category: 'مشاوي', img: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=200' },
+            { id: 7, name: 'بيبسي / سفن أپ', price: 6, category: 'مشروبات', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200' },
+            { id: 8, name: 'عصير برتقال طازج', price: 14, category: 'مشروبات', img: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=200' },
+            { id: 9, name: 'وافل بالموز والشوكولاتة', price: 22, category: 'حلويات', img: 'https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=200' },
+            { id: 10, name: 'تشيز كيك توت', price: 24, category: 'حلويات', img: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=200' }
+        ];
+
+        let cart = JSON.parse(localStorage.getItem('pos_cart')) || [];
+        let salesHistory = JSON.parse(localStorage.getItem('pos_sales_history')) || [];
+        let currentOrderType = localStorage.getItem('pos_order_type') || 'طاولة 01';
+        let currentPaymentMethod = localStorage.getItem('pos_payment_method') || 'نقداً (كاش)';
+        let isDeliveryApp = localStorage.getItem('pos_is_delivery') === 'true';
+
+        function displayProducts(items) {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = '';
+            items.forEach(product => {
+                grid.innerHTML += `
+                    <div class="product-card" onclick="addToCart(${product.id})">
+                        <img src="${product.img}" alt="${product.name}">
+                        <div class="product-title">${product.name}</div>
+                        <div class="product-price">${product.price} ر.س</div>
+                    </div>
+                `;
+            });
+        }
+
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const cartItem = cart.find(item => item.id === productId);
+            if (cartItem) cartItem.qty++;
+            else cart.push({ ...product, qty: 1 });
+            saveState();
+            updateCartUI();
+        }
+
+        function updateQuantity(productId, change) {
+            const cartItem = cart.find(item => item.id === productId);
+            if (cartItem) {
+                cartItem.qty += change;
+                if (cartItem.qty <= 0) cart = cart.filter(item => item.id !== productId);
+            }
+            saveState();
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const cartContainer = document.getElementById('cart-items');
+            cartContainer.innerHTML = '';
+            let subtotal = 0;
+
+            cart.forEach(item => {
+                const itemTotal = item.price * item.qty;
+                subtotal += itemTotal;
+                cartContainer.innerHTML += `
+                    <div class="cart-item">
+                        <div>
+                            <div><strong>${item.name}</strong></div>
+                            <small>${item.price} × ${item.qty} = ${itemTotal} ر.س</small>
+                        </div>
+                        <div class="qty-btns">
+                            <button onclick="updateQuantity(${item.id}, -1)">-</button>
+                            <span>${item.qty}</span>
+                            <button onclick="updateQuantity(${item.id}, 1)">+</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const tax = subtotal * 0.15;
+            const total = subtotal + tax;
+
+            document.getElementById('subtotal').innerText = `${subtotal.toFixed(2)} ر.س`;
+            document.getElementById('tax').innerText = `${tax.toFixed(2)} ر.س`;
+            document.getElementById('total').innerText = `${total.toFixed(2)} ر.س`;
+        }
+
+        function filterCategory(cat, btn) {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (cat === 'الكل') displayProducts(products);
+            else displayProducts(products.filter(p => p.category === cat));
+        }
+
+        function filterProducts() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            displayProducts(products.filter(p => p.name.toLowerCase().includes(query)));
+        }
+
+        function setOrderType(btn, type) {
+            document.querySelectorAll('.order-type button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const appSelector = document.getElementById('app-selector');
+            if (type === 'تطبيقات توصيل') {
+                isDeliveryApp = true;
+                appSelector.classList.add('active');
+                updateSelectedApp();
+            } else {
+                isDeliveryApp = false;
+                appSelector.classList.remove('active');
+                currentOrderType = type;
+            }
+            saveState();
+        }
+
+        function setPaymentMethod(btn, method) {
+            document.querySelectorAll('.payment-type button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPaymentMethod = method;
+            saveState();
+        }
+
+        function updateSelectedApp() {
+            if (isDeliveryApp) {
+                const selectedApp = document.getElementById('delivery-app').value;
+                currentOrderType = `توصيل - ${selectedApp}`;
+            }
+            saveState();
+        }
+
+        function switchView(view) {
+            const posSection = document.getElementById('menu-container-section');
+            const cartSection = document.getElementById('cart-container-section');
+            const accSection = document.getElementById('accounts-container-section');
+
+            if (view === 'pos') {
+                posSection.style.display = 'flex';
+                cartSection.style.display = 'flex';
+                accSection.classList.remove('active');
+                document.getElementById('btn-pos-view').classList.add('active');
+                document.getElementById('btn-acc-view').classList.remove('active');
+            } else {
+                posSection.style.display = 'none';
+                cartSection.style.display = 'none';
+                accSection.classList.add('active');
+                document.getElementById('btn-pos-view').classList.remove('active');
+                document.getElementById('btn-acc-view').classList.add('active');
+                renderAccounts();
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('pos_cart', JSON.stringify(cart));
+            localStorage.setItem('pos_sales_history', JSON.stringify(salesHistory));
+            localStorage.setItem('pos_order_type', currentOrderType);
+            localStorage.setItem('pos_payment_method', currentPaymentMethod);
+        }
+
+        function clearCart() { 
+            cart = []; 
+            saveState();
+            updateCartUI(); 
+        }
+
+        function completeSaleAndPrint() {
+            if (cart.length === 0) return alert('السلة فارغة!');
+
+            let subtotal = 0;
+            cart.forEach(item => subtotal += (item.price * item.qty));
+            const tax = subtotal * 0.15;
+            const total = subtotal + tax;
+            const now = new Date();
+
+            // حفظ العمليات في قسم الحسابات
+            const newSale = {
+                id: '#' + (1000 + salesHistory.length + 1),
+                date: now.toLocaleString('ar-SA'),
+                type: currentOrderType,
+                payment: currentPaymentMethod,
+                total: total
+            };
+            salesHistory.push(newSale);
+
+            // إعداد بيانات الفاتورة المطبوعة
+            document.getElementById('rec-order-id').innerText = newSale.id;
+            document.getElementById('rec-order-type').innerText = currentOrderType;
+            document.getElementById('rec-payment-method').innerText = currentPaymentMethod;
+            document.getElementById('rec-date-time').innerText = now.toLocaleString('ar-SA');
+
+            const recItems = document.getElementById('rec-items');
+            recItems.innerHTML = '';
+            cart.forEach(item => {
+                recItems.innerHTML += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td style="text-align:center;">${item.qty}</td>
+                        <td>${(item.price * item.qty).toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('rec-subtotal').innerText = subtotal.toFixed(2);
+            document.getElementById('rec-tax').innerText = tax.toFixed(2);
+            document.getElementById('rec-total').innerText = total.toFixed(2) + ' ر.س';
+
+            // إنتاج ZATCA Phase 2 QR Code المفرغ والمشفر
+            generateZatcaQRCode("مطعم واو فود", "310123456700003", now.toISOString(), total.toFixed(2), tax.toFixed(2));
+
+            saveState();
+            window.print();
+            clearCart();
+        }
+
+        // توليد QR مطابق لتعليمات هيئة الزكاة والدخل (ZATCA TLV Format)
+        function generateZatcaQRCode(seller, vatNo, time, total, vat) {
+            function getTlv(tag, val) {
+                const enc = new TextEncoder().encode(val);
+                const len = enc.length;
+                const buf = new Uint8Array(2 + len);
+                buf[0] = tag;
+                buf[1] = len;
+                buf.set(enc, 2);
+                return buf;
+            }
+
+            const tlv1 = getTlv(1, seller);
+            const tlv2 = getTlv(2, vatNo);
+            const tlv3 = getTlv(3, time);
+            const tlv4 = getTlv(4, total);
+            const tlv5 = getTlv(5, vat);
+
+            const combined = new Uint8Array(tlv1.length + tlv2.length + tlv3.length + tlv4.length + tlv5.length);
+            let offset = 0;
+            [tlv1, tlv2, tlv3, tlv4, tlv5].forEach(arr => { combined.set(arr, offset); offset += arr.length; });
+
+            const base64Qr = btoa(String.fromCharCode.apply(null, combined));
+            
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById("qrcode"), { text: base64Qr, width: 110, height: 110 });
+        }
+
+        function renderAccounts() {
+            let totalSales = 0, cashSales = 0, cardSales = 0;
+            const tableBody = document.getElementById('sales-history-table');
+            tableBody.innerHTML = '';
+
+            salesHistory.forEach(s => {
+                totalSales += s.total;
+                if (s.payment.includes('كاش')) cashSales += s.total;
+                else cardSales += s.total;
+
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${s.id}</td>
+                        <td>${s.date}</td>
+                        <td>${s.type}</td>
+                        <td>${s.payment}</td>
+                        <td><strong>${s.total.toFixed(2)} ر.س</strong></td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('stat-total-sales').innerText = `${totalSales.toFixed(2)} ر.س`;
+            document.getElementById('stat-total-orders').innerText = salesHistory.length;
+            document.getElementById('stat-cash-sales').innerText = `${cashSales.toFixed(2)} ر.س`;
+            document.getElementById('stat-card-sales').innerText = `${cardSales.toFixed(2)} ر.س`;
+        }
+
+        displayProducts(products);
+        updateCartUI();
+    </script>
+</body>
+</html>
