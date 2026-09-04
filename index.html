@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام الكاشير المتكامل - ZATCA POS Pro</title>
+    <title>نظام الكاشير والمطبخ المتكامل - ZATCA POS Pro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
@@ -11,7 +11,10 @@
         .card-product { cursor: pointer; transition: transform 0.2s; border: 1px solid #e0e0e0; }
         .card-product:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .invoice-box { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .badge-stock { position: absolute; top: 10px; left: 10px; }
+        .badge-stock { position: absolute; top: 8px; left: 8px; }
+        .nav-pills .nav-link.active { background-color: #0d6efd; }
+        .kds-card { border-right: 5px solid #ffc107; }
+        .kds-card.ready { border-right: 5px solid #198754; }
         @media print {
             body * { visibility: hidden; }
             #printable-invoice, #printable-invoice * { visibility: visible; }
@@ -23,45 +26,56 @@
 <body>
 
 <div class="container-fluid py-3 no-print">
-    <div class="row mb-3">
-        <div class="col-md-8 d-flex align-items-center justify-content-between">
-            <h3 class="fw-bold mb-0">🛒 نظام نقاط البيع المتقدم (POS ZATCA)</h3>
-            <div>
-                <button class="btn btn-outline-primary btn-sm me-2" onclick="showShiftSummary()">📊 تقرير الشيفت والإغلاق</button>
-                <button class="btn btn-outline-success btn-sm" onclick="exportToCSV()">📥 تصدير Excel/CSV</button>
-            </div>
+    <!-- الشريط العلوي -->
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-6">
+            <h3 class="fw-bold mb-0">🍽️ كاشير مطعم مايكرو زون</h3>
+            <small class="text-muted">الرقم الضريبي: 310000000000003</small>
         </div>
-        <div class="col-md-4 text-end">
-            <span class="badge bg-success p-2">وضع العمل: أوفلاين (بدون إنترنت)</span>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-outline-dark btn-sm me-1" onclick="toggleView('pos')">🛒 شاشة الكاشير</button>
+            <button class="btn btn-outline-danger btn-sm me-1" onclick="toggleView('kds')">👨‍🍳 شاشة المطبخ (KDS) <span class="badge bg-danger" id="kds-count">0</span></button>
+            <button class="btn btn-outline-primary btn-sm me-1" onclick="showShiftSummary()">📊 التقرير اليومي</button>
+            <button class="btn btn-outline-success btn-sm" onclick="exportToCSV()">📥 تصدير Excel</button>
         </div>
     </div>
 
-    <div class="row">
-        <!-- قائمة المنتجات -->
+    <!-- شاشة الكاشير الرئيسية -->
+    <div id="pos-view" class="row">
+        <!-- المنيو وقائمة المنتجات -->
         <div class="col-md-7">
+            <!-- تصنيفات المنيو -->
+            <ul class="nav nav-pills mb-3 bg-white p-2 rounded shadow-sm" id="menu-categories">
+                <li class="nav-item"><a class="nav-link active" href="#" onclick="filterCategory('الكل', this)">الكل</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" onclick="filterCategory('وجبات سريعة', this)">وجبات سريعة</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" onclick="filterCategory('مشويات', this)">مشويات</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" onclick="filterCategory('مشروبات', this)">مشروبات</a></li>
+                <li class="nav-item"><a class="nav-link" href="#" onclick="filterCategory('حلويات', this)">حلويات</a></li>
+            </ul>
+
+            <!-- شبكة المنتجات -->
             <div class="row g-3" id="products-grid"></div>
         </div>
 
         <!-- سلة الطلبات والفاتورة -->
         <div class="col-md-5">
             <div class="invoice-box">
-                <h5 class="fw-bold border-bottom pb-2">تفاصيل الطلب الحالي</h5>
+                <h5 class="fw-bold border-bottom pb-2">تفاصيل الطلب</h5>
                 
                 <div class="row g-2 mb-2">
                     <div class="col-6">
-                        <label class="form-label small fw-bold">نوع الطلب / الخدمة:</label>
+                        <label class="form-label small fw-bold">نوع الخدمة / التطبيق:</label>
                         <select id="order-type" class="form-select form-select-sm" onchange="toggleDeliveryPlatforms()">
-                            <optgroup label="خدمة داخلية">
+                            <optgroup label="داخل المطعم">
                                 <option value="محلي - طاولة 1">محلي - طاولة 1</option>
                                 <option value="محلي - طاولة 2">محلي - طاولة 2</option>
                                 <option value="سفري">سفري (Takeaway)</option>
                             </optgroup>
                             <optgroup label="تطبيقات التوصيل">
-                                <option value="توصيل - هنقرستيشن">توصيل - هنقرستيشن (Hungerstation)</option>
-                                <option value="توصيل - نون فود">توصيل - نون فود (Noon Food)</option>
-                                <option value="توصيل - كيتا">توصيل - كيتا (Keeta)</option>
-                                <option value="توصيل - نينجا">توصيل - نينجا (Ninja)</option>
-                                <option value="توصيل - خاص">توصيل - سائق خاص</option>
+                                <option value="هنقرستيشن">هنقرستيشن</option>
+                                <option value="نون فود">نون فود</option>
+                                <option value="كيتا">كيتا (Keeta)</option>
+                                <option value="نينجا">نينجا (Ninja)</option>
                             </optgroup>
                         </select>
                     </div>
@@ -78,19 +92,18 @@
 
                 <div class="row g-2 mb-2" id="delivery-ref-container" style="display: none;">
                     <div class="col-12">
-                        <label class="form-label small text-danger fw-bold">رقم مرجع/طلب التطبيق:</label>
-                        <input type="text" id="delivery-ref" class="form-control form-control-sm" placeholder="أدخل رقم الطلب من التطبيق (مثال: #HS-8891)">
+                        <input type="text" id="delivery-ref" class="form-control form-control-sm border-danger" placeholder="رقم مرجع/طلب التطبيق (مثال: #HS-9981)">
                     </div>
                 </div>
 
-                <!-- جدول الطلبات -->
-                <div class="table-responsive style-scroll" style="max-height: 250px; overflow-y: auto;">
+                <!-- جدول العناصر المضافة -->
+                <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
                     <table class="table table-sm align-middle">
                         <thead>
                             <tr>
                                 <th>المنتج</th>
                                 <th>الكمية</th>
-                                <th>الإضافات</th>
+                                <th>التفاصيل</th>
                                 <th>السعر</th>
                                 <th></th>
                             </tr>
@@ -99,9 +112,10 @@
                     </table>
                 </div>
 
+                <!-- إجمالي المبالغ -->
                 <div class="border-top pt-2 mt-2">
                     <div class="d-flex justify-content-between mb-1">
-                        <span>المجموع (غير شامل الضريبة):</span>
+                        <span>المبلغ الخاضع للضريبة:</span>
                         <span id="subtotal">0.00 ر.س</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1 text-muted">
@@ -109,130 +123,166 @@
                         <span id="tax-amount">0.00 ر.س</span>
                     </div>
                     <div class="d-flex justify-content-between fw-bold fs-5 text-primary border-top pt-1">
-                        <span>الإجمالي النهائى:</span>
+                        <span>الإجمالي النهائي (شامل الضريبة):</span>
                         <span id="total-amount">0.00 ر.س</span>
                     </div>
                 </div>
 
                 <div class="d-grid gap-2 mt-3">
-                    <button class="btn btn-success btn-lg" onclick="processPaymentAndPrint()">💳 دفع وطباعة الفاتورة</button>
+                    <button class="btn btn-success btn-lg fw-bold" onclick="processPaymentAndPrint()">💳 إصدار الفاتورة وإرسال للمطبخ</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- شاشة المطبخ (KDS) -->
+    <div id="kds-view" class="row g-3" style="display: none;">
+        <div class="col-12 mb-2 d-flex justify-content-between align-items-center">
+            <h4 class="fw-bold text-danger mb-0">👨‍🍳 شاشة طلبات المطبخ النشطة</h4>
+            <button class="btn btn-outline-secondary btn-sm" onclick="clearAllKdsOrders()">مسح كافة الطلبات المكتملة</button>
+        </div>
+        <div class="row g-3" id="kds-orders-container"></div>
+    </div>
 </div>
 
-<!-- طباعة الفاتورة المبسطة ZATCA -->
-<div id="printable-invoice" class="p-3 bg-white" style="display: none; max-width: 300px; margin: 0 auto;">
+<!-- تصميم الفاتورة الضريبية المبسطة المعيارية (ZATCA) -->
+<div id="printable-invoice" class="p-3 bg-white" style="display: none; max-width: 280px; margin: 0 auto; font-family: monospace;">
     <div class="text-center mb-2">
         <h5 class="fw-bold m-0" id="inv-seller">مطعم مايكرو زون</h5>
-        <small class="text-muted">الرقم الضريبي: <span id="inv-vat-no">310000000000003</span></small><br>
-        <small id="inv-date"></small>
+        <small class="d-block">شركة مايكرو زون المحدودة</small>
+        <small class="d-block">الرقم الضريبي: <span id="inv-vat-no">310000000000003</span></small>
+        <small class="d-block" id="inv-date"></small>
     </div>
-    <hr class="my-1">
+    <div style="border-top: 1px dashed #000;" class="my-2"></div>
+    <div class="fw-bold text-center mb-1">فاتورة ضريبية مبسطة</div>
+    <div style="border-top: 1px dashed #000;" class="my-2"></div>
     <div><strong>رقم الفاتورة:</strong> <span id="inv-number"></span></div>
     <div><strong>نوع الطلب:</strong> <span id="inv-type"></span></div>
-    <div id="inv-ref-box" style="display:none;"><strong>رقم مرجع التطبيق:</strong> <span id="inv-ref-no"></span></div>
+    <div id="inv-ref-box" style="display:none;"><strong>مرجع التطبيق:</strong> <span id="inv-ref-no"></span></div>
     <div><strong>طريقة الدفع:</strong> <span id="inv-pay-method"></span></div>
-    <hr class="my-1">
+    <div style="border-top: 1px dashed #000;" class="my-2"></div>
     <table class="w-100 fs-6 text-start mb-2">
         <thead>
-            <tr class="border-bottom">
-                <th>العنصر</th>
+            <tr style="border-bottom: 1px solid #000;">
+                <th>الصنف</th>
                 <th>العدد</th>
-                <th>السعر</th>
+                <th>المجموع</th>
             </tr>
         </thead>
         <tbody id="inv-items"></tbody>
     </table>
-    <hr class="my-1">
-    <div class="d-flex justify-content-between"><span>المجموع:</span><span id="inv-subtotal"></span></div>
-    <div class="d-flex justify-content-between"><span>الضريبة (15%):</span><span id="inv-tax"></span></div>
-    <div class="d-flex justify-content-between fw-bold"><span>الإجمالي:</span><span id="inv-total"></span></div>
-    <div class="text-center mt-3">
+    <div style="border-top: 1px dashed #000;" class="my-2"></div>
+    <div class="d-flex justify-content-between"><span>المبلغ الخاضع للضريبة:</span><span id="inv-subtotal"></span></div>
+    <div class="d-flex justify-content-between"><span>ضريبة القيمة المضافة (15%):</span><span id="inv-tax"></span></div>
+    <div class="d-flex justify-content-between fw-bold fs-6"><span>الإجمالي شامل الضريبة:</span><span id="inv-total"></span></div>
+    <div style="border-top: 1px dashed #000;" class="my-2"></div>
+    <div class="text-center mt-2">
         <div id="qrcode" class="d-flex justify-content-center"></div>
-        <small class="d-block mt-1 text-muted">فاتورة ضريبية مبسطة</small>
+        <small class="d-block mt-1">شكراً لزيارتكم!</small>
     </div>
 </div>
 
-<!-- Modal التعديل والإضافات -->
+<!-- Modal الإضافات والحجم -->
 <div class="modal fade" id="modifierModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="mod-product-title">إضافات الوجبة</h5>
+        <h5 class="modal-title" id="mod-product-title">تخصيص الوجبة</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <h6>اختر الحجم:</h6>
         <div class="form-check">
           <input class="form-check-input" type="radio" name="sizeOpt" id="sizeNormal" value="0" checked>
-          <label class="form-check-label" for="sizeNormal">حجم عادي (+0 ر.س)</label>
+          <label class="form-check-label" for="sizeNormal">حجم عادي</label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="radio" name="sizeOpt" id="sizeLarge" value="5">
-          <label class="form-check-label" for="sizeLarge">حجم كبير (+5 ر.س)</label>
+          <input class="form-check-input" type="radio" name="sizeOpt" id="sizeLarge" value="6">
+          <label class="form-check-label" for="sizeLarge">حجم كبير (+6 ر.س)</label>
         </div>
         <hr>
-        <h6>إضافات اختيارية:</h6>
+        <h6>إضافات جانبية:</h6>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="addCheese" value="3">
-          <label class="form-check-label" for="addCheese">جبنة إضافية (+3 ر.س)</label>
+          <label class="form-check-label" for="addCheese">جبنة شيدر (+3 ر.س)</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="addSauce" value="2">
-          <label class="form-check-label" for="addSauce">صوص خاص (+2 ر.س)</label>
+          <label class="form-check-label" for="addSauce">صوص الثوم الخاص (+2 ر.س)</label>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" onclick="confirmAddToCart()">إضافة للسلة</button>
+        <button type="button" class="btn btn-primary w-100" onclick="confirmAddToCart()">إضافة إلى الطلب</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-    const products = [
-        { id: 1, name: 'وجبة برجر لحم', price: 25.00, stock: 15 },
-        { id: 2, name: 'وجبة دجاج كرسبي', price: 22.00, stock: 20 },
-        { id: 3, name: 'شاورما عربي', price: 18.00, stock: 30 },
-        { id: 4, name: 'عصير برتقال طازج', price: 8.00, stock: 40 },
-        { id: 5, name: 'بطاطس مقلية', price: 6.00, stock: 50 }
+    // المنيو المتكامل
+    const menuProducts = [
+        { id: 1, name: 'وجبة برجر لحم دبل', category: 'وجبات سريعة', price: 28.00, stock: 20 },
+        { id: 2, name: 'وجبة دجاج كرسبي', category: 'وجبات سريعة', price: 24.00, stock: 15 },
+        { id: 3, name: 'ساندوتش شاورما عربي', category: 'وجبات سريعة', price: 18.00, stock: 35 },
+        { id: 4, name: 'كباب لحم مشوي (نصف كيلو)', category: 'مشويات', price: 55.00, stock: 10 },
+        { id: 5, name: 'شيش طاووق على الفحم', category: 'مشويات', price: 38.00, stock: 12 },
+        { id: 6, name: 'عصير برتقال طازج', category: 'مشروبات', price: 9.00, stock: 50 },
+        { id: 7, name: 'مشروب غازي', category: 'مشروبات', price: 4.00, stock: 100 },
+        { id: 8, name: 'كيكة الشوكولاتة', category: 'حلويات', price: 15.00, stock: 8 },
+        { id: 9, name: 'أم علي بالمكسرات', category: 'حلويات', price: 14.00, stock: 10 }
     ];
 
     let cart = [];
+    let kitchenOrders = JSON.parse(localStorage.getItem('zatca_kds_orders')) || [];
     let selectedProd = null;
-    let salesHistory = JSON.parse(localStorage.getItem('zatca_sales')) || [];
+    let salesHistory = JSON.parse(localStorage.getItem('zatca_sales_v2')) || [];
+    let currentCategory = 'الكل';
 
     const SELLER_NAME = "مطعم مايكرو زون";
     const VAT_NUMBER = "310000000000003";
 
+    // مزامنة الطلبات لحظياً بين النوافذ والأجهزة عبر المتصفح
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'zatca_kds_orders') {
+            kitchenOrders = JSON.parse(e.newValue || '[]');
+            updateKDSView();
+        }
+    });
+
     function renderProducts() {
         const grid = document.getElementById('products-grid');
         grid.innerHTML = '';
-        products.forEach(p => {
+        const filtered = currentCategory === 'الكل' ? menuProducts : menuProducts.filter(p => p.category === currentCategory);
+
+        filtered.forEach(p => {
             grid.innerHTML += `
                 <div class="col-md-4">
-                    <div class="card card-product p-3 text-center position-relative" onclick="openModifierModal(${p.id})">
-                        <span class="badge bg-${p.stock > 5 ? 'secondary' : 'danger'} badge-stock">المخزون: ${p.stock}</span>
-                        <h6 class="fw-bold mt-2">${p.name}</h6>
-                        <span class="text-primary fw-bold">${p.price.toFixed(2)} ر.س</span>
+                    <div class="card card-product p-3 text-center position-relative shadow-sm" onclick="openModifierModal(${p.id})">
+                        <span class="badge bg-${p.stock > 5 ? 'secondary' : 'danger'} badge-stock">متوفر: ${p.stock}</span>
+                        <h6 class="fw-bold mt-3 mb-1">${p.name}</h6>
+                        <small class="text-muted d-block mb-2">${p.category}</small>
+                        <span class="text-primary fw-bold fs-5">${p.price.toFixed(2)} ر.س</span>
                     </div>
                 </div>
             `;
         });
     }
 
+    function filterCategory(cat, element) {
+        currentCategory = cat;
+        document.querySelectorAll('#menu-categories .nav-link').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        renderProducts();
+    }
+
     function toggleDeliveryPlatforms() {
-        const orderType = document.getElementById('order-type').value;
+        const type = document.getElementById('order-type').value;
         const refContainer = document.getElementById('delivery-ref-container');
         const paySelect = document.getElementById('payment-method');
 
-        if (orderType.includes('توصيل')) {
+        if (['هنقرستيشن', 'نون فود', 'كيتا', 'نينجا'].includes(type)) {
             refContainer.style.display = 'block';
-            if (['هنقرستيشن', 'نون فود', 'كيتا', 'نينجا'].some(p => orderType.includes(p))) {
-                paySelect.value = 'حساب تطبيق (آجل)';
-            }
+            paySelect.value = 'حساب تطبيق (آجل)';
         } else {
             refContainer.style.display = 'none';
             if (paySelect.value === 'حساب تطبيق (آجل)') paySelect.value = 'كاش';
@@ -240,8 +290,8 @@
     }
 
     function openModifierModal(prodId) {
-        selectedProd = products.find(p => p.id === prodId);
-        if(selectedProd.stock <= 0) return alert('عذراً، هذا المنتج نفد من المخزون!');
+        selectedProd = menuProducts.find(p => p.id === prodId);
+        if (selectedProd.stock <= 0) return alert('هذا المنتج غير متوفر بالمخزون حالياً!');
         document.getElementById('mod-product-title').innerText = selectedProd.name;
         new bootstrap.Modal(document.getElementById('modifierModal')).show();
     }
@@ -251,17 +301,23 @@
         let extraText = [];
         let extraCost = sizeExtra;
 
-        if (sizeExtra > 0) extraText.push('كبير');
+        if (sizeExtra > 0) extraText.push('حجم كبير');
         if (document.getElementById('addCheese').checked) { extraCost += 3; extraText.push('جبنة'); }
-        if (document.getElementById('addSauce').checked) { extraCost += 2; extraText.push('صوص'); }
+        if (document.getElementById('addSauce').checked) { extraCost += 2; extraText.push('صوص ثوم'); }
 
         const itemPrice = selectedProd.price + extraCost;
-        const cartIndex = cart.findIndex(item => item.id === selectedProd.id && item.extras === extraText.join(', '));
+        const cartIndex = cart.findIndex(i => i.id === selectedProd.id && i.extras === extraText.join(', '));
 
         if (cartIndex > -1) {
             cart[cartIndex].qty++;
         } else {
-            cart.push({ id: selectedProd.id, name: selectedProd.name, price: itemPrice, qty: 1, extras: extraText.join(', ') || 'عادي' });
+            cart.push({
+                id: selectedProd.id,
+                name: selectedProd.name,
+                price: itemPrice,
+                qty: 1,
+                extras: extraText.join(', ') || 'عادي'
+            });
         }
 
         bootstrap.Modal.getInstance(document.getElementById('modifierModal')).hide();
@@ -297,13 +353,13 @@
         document.getElementById('total-amount').innerText = (total + vat).toFixed(2) + ' ر.س';
     }
 
-    function changeQty(index, delta) {
-        cart[index].qty += delta;
-        if (cart[index].qty <= 0) cart.splice(index, 1);
+    function changeQty(idx, delta) {
+        cart[idx].qty += delta;
+        if (cart[idx].qty <= 0) cart.splice(idx, 1);
         updateCart();
     }
 
-    function removeItem(index) { cart.splice(index, 1); updateCart(); }
+    function removeItem(idx) { cart.splice(idx, 1); updateCart(); }
 
     function generateZatcaQR(seller, vatNo, datetime, total, vatTotal) {
         function getTlv(tag, value) {
@@ -312,10 +368,8 @@
             buf[0] = tag; buf[1] = enc.length; buf.set(enc, 2);
             return buf;
         }
-
         const tlv1 = getTlv(1, seller), tlv2 = getTlv(2, vatNo), tlv3 = getTlv(3, datetime), tlv4 = getTlv(4, total.toString()), tlv5 = getTlv(5, vatTotal.toString());
         const combined = new Uint8Array(tlv1.length + tlv2.length + tlv3.length + tlv4.length + tlv5.length);
-        
         let offset = 0;
         [tlv1, tlv2, tlv3, tlv4, tlv5].forEach(arr => { combined.set(arr, offset); offset += arr.length; });
         return btoa(String.fromCharCode.apply(null, combined));
@@ -327,8 +381,9 @@
         const orderType = document.getElementById('order-type').value;
         const appRef = document.getElementById('delivery-ref').value;
 
+        // خصم المخزون
         cart.forEach(c => {
-            const p = products.find(prod => prod.id === c.id);
+            const p = menuProducts.find(prod => prod.id === c.id);
             if (p) p.stock -= c.qty;
         });
         renderProducts();
@@ -339,13 +394,14 @@
         const grandTotal = subtotal + vat;
         const invNo = 'INV-' + Math.floor(100000 + Math.random() * 900000);
 
+        // تجهيز بيانات الفاتورة
         document.getElementById('inv-seller').innerText = SELLER_NAME;
         document.getElementById('inv-vat-no').innerText = VAT_NUMBER;
         document.getElementById('inv-date').innerText = now.toLocaleString('ar-SA');
         document.getElementById('inv-number').innerText = invNo;
         document.getElementById('inv-type').innerText = orderType;
 
-        if(appRef) {
+        if (appRef) {
             document.getElementById('inv-ref-box').style.display = 'block';
             document.getElementById('inv-ref-no').innerText = appRef;
         } else {
@@ -368,8 +424,21 @@
         const qrBase64 = generateZatcaQR(SELLER_NAME, VAT_NUMBER, now.toISOString(), grandTotal.toFixed(2), vat.toFixed(2));
         new QRCode(document.getElementById("qrcode"), { text: qrBase64, width: 110, height: 110 });
 
+        // إضافة الطلب لشاشة المطبخ وحفظه في localStorage لإرساله لحظياً للنافذة الأخرى
+        kitchenOrders.push({
+            id: invNo,
+            type: orderType,
+            ref: appRef,
+            items: [...cart],
+            time: now.toLocaleTimeString('ar-SA'),
+            status: 'قيد التحضير'
+        });
+        
+        saveAndSyncKDS();
+
+        // حفظ التقارير
         salesHistory.push({ invNo, date: now.toLocaleString('ar-SA'), total: grandTotal, type: orderType, appRef: appRef || '-', method: document.getElementById('payment-method').value });
-        localStorage.setItem('zatca_sales', JSON.stringify(salesHistory));
+        localStorage.setItem('zatca_sales_v2', JSON.stringify(salesHistory));
 
         document.getElementById('printable-invoice').style.display = 'block';
         window.print();
@@ -380,38 +449,95 @@
         updateCart();
     }
 
+    function saveAndSyncKDS() {
+        localStorage.setItem('zatca_kds_orders', JSON.stringify(kitchenOrders));
+        updateKDSView();
+    }
+
+    function toggleView(view) {
+        if (view === 'pos') {
+            document.getElementById('pos-view').style.display = 'flex';
+            document.getElementById('kds-view').style.display = 'none';
+        } else {
+            document.getElementById('pos-view').style.display = 'none';
+            document.getElementById('kds-view').style.display = 'flex';
+            updateKDSView();
+        }
+    }
+
+    function updateKDSView() {
+        const container = document.getElementById('kds-orders-container');
+        document.getElementById('kds-count').innerText = kitchenOrders.filter(o => o.status === 'قيد التحضير').length;
+        container.innerHTML = '';
+
+        if (kitchenOrders.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center text-muted py-5">لا توجد طلبات جارية في المطبخ حالياً</div>';
+            return;
+        }
+
+        kitchenOrders.forEach((o, index) => {
+            let itemsList = o.items.map(i => `<li><strong>${i.qty}x</strong> ${i.name} <small class="text-muted">(${i.extras})</small></li>`).join('');
+            container.innerHTML += `
+                <div class="col-md-4">
+                    <div class="card kds-card ${o.status === 'جاهز' ? 'ready' : ''} p-3 shadow-sm bg-white">
+                        <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                            <h6 class="fw-bold mb-0">${o.id}</h6>
+                            <span class="badge bg-${o.status === 'جاهز' ? 'success' : 'warning'} text-dark">${o.status}</span>
+                        </div>
+                        <small class="d-block mb-1"><strong>النوع:</strong> ${o.type} ${o.ref ? `(${o.ref})` : ''}</small>
+                        <small class="d-block mb-2 text-muted"><strong>الوقت:</strong> ${o.time}</small>
+                        <ul class="mb-3 ps-3">${itemsList}</ul>
+                        ${o.status === 'قيد التحضير' ? 
+                            `<button class="btn btn-sm btn-success w-100 fw-bold" onclick="markOrderReady(${index})">✔ اكتمل التحضير</button>` : 
+                            `<button class="btn btn-sm btn-secondary w-100" onclick="removeKdsOrder(${index})">إزالة من الشاشة</button>`
+                        }
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function markOrderReady(index) {
+        kitchenOrders[index].status = 'جاهز';
+        saveAndSyncKDS();
+    }
+
+    function removeKdsOrder(index) {
+        kitchenOrders.splice(index, 1);
+        saveAndSyncKDS();
+    }
+
+    function clearAllKdsOrders() {
+        if(confirm('هل أنت تأكد من إزالة جميع الطلبات المكتملة من الشاشة؟')) {
+            kitchenOrders = kitchenOrders.filter(o => o.status === 'قيد التحضير');
+            saveAndSyncKDS();
+        }
+    }
+
     function showShiftSummary() {
         let totalCash = 0, totalCard = 0, totalApps = 0, grandTotal = 0;
-        let appsBreakdown = { 'هنقرستيشن': 0, 'نون فود': 0, 'كيتا': 0, 'نينجا': 0, 'أخرى': 0 };
-
         salesHistory.forEach(s => {
             grandTotal += s.total;
             if (s.method.includes('كاش')) totalCash += s.total;
             else if (s.method.includes('شبكة') || s.method.includes('فيزا')) totalCard += s.total;
             else totalApps += s.total;
-
-            if (s.type.includes('هنقرستيشن')) appsBreakdown['هنقرستيشن'] += s.total;
-            else if (s.type.includes('نون فود')) appsBreakdown['نون فود'] += s.total;
-            else if (s.type.includes('كيتا')) appsBreakdown['كيتا'] += s.total;
-            else if (s.type.includes('نينجا')) appsBreakdown['نينجا'] += s.total;
-            else if (s.type.includes('توصيل')) appsBreakdown['أخرى'] += s.total;
         });
-
-        alert(`📊 تقرير الشيفت والإغلاق:\n-----------------------------------\nإجمالي الفواتير: ${salesHistory.length}\n\n💵 كاش: ${totalCash.toFixed(2)} ر.س\n💳 شبكة: ${totalCard.toFixed(2)} ر.س\n🛵 إجمالي التطبيقات: ${totalApps.toFixed(2)} ر.س\n\n🛵 تفصيل المنصات:\n • هنقرستيشن: ${appsBreakdown['هنقرستيشن'].toFixed(2)} ر.س\n • نون فود: ${appsBreakdown['نون فود'].toFixed(2)} ر.س\n • كيتا: ${appsBreakdown['كيتا'].toFixed(2)} ر.س\n • نينجا: ${appsBreakdown['نينجا'].toFixed(2)} ر.س\n-----------------------------------\nالإجمالي العام: ${grandTotal.toFixed(2)} ر.س`);
+        alert(`📊 ملخص المبيعات اليومية:\n-------------------------\nعدد الفواتير: ${salesHistory.length}\n💵 نقدية (كاش): ${totalCash.toFixed(2)} ر.س\n💳 مدى/شبكة: ${totalCard.toFixed(2)} ر.س\n🛵 مبيعات التطبيقات: ${totalApps.toFixed(2)} ر.س\n-------------------------\nإجمالي مبيعات اليوم: ${grandTotal.toFixed(2)} ر.س`);
     }
 
     function exportToCSV() {
         if(salesHistory.length === 0) return alert('لا توجد مبيعات لتصديرها!');
-        let csv = '\uFEFFرقم الفاتورة,التاريخ,نوع الطلب,رقم مرجع التطبيق,طريقة الدفع,الإجمالي\n';
+        let csv = '\uFEFFرقم الفاتورة,التاريخ,نوع الطلب,مرجع التطبيق,طريقة الدفع,الإجمالي\n';
         salesHistory.forEach(s => { csv += `"${s.invNo}","${s.date}","${s.type}","${s.appRef}","${s.method}","${s.total.toFixed(2)}"\n`; });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `تقرير_المبيعات.csv`;
+        link.download = `تقرير_مبيعات_مطعم_مايكرو_زون.csv`;
         link.click();
     }
 
     renderProducts();
+    updateKDSView();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
