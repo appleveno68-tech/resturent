@@ -3,91 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام مبيعات متكامل - Apple Authorized Reseller POS</title>
+    <title>APPLE STORE POS - نظام المبيعات والشحن المتكامل</title>
+    <!-- Bootstrap 5 RTL -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- QR Code & Barcode Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    
     <style>
-        body { background-color: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .apple-card { border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .card-product { cursor: pointer; background: #fff; transition: transform 0.2s; }
-        .card-product:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
-        .invoice-box { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .badge-stock { position: absolute; top: 10px; left: 10px; }
-        
+        :root {
+            --apple-bg: #f5f5f7;
+            --apple-card-bg: rgba(255, 255, 255, 0.85);
+            --apple-blue: #0071e3;
+            --apple-dark: #1d1d1f;
+            --apple-radius: 18px;
+        }
+
+        body { 
+            background-color: var(--apple-bg); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--apple-dark);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* تصميم كروت Apple التفاعلية */
+        .apple-card { 
+            background: var(--apple-card-bg); 
+            backdrop-filter: blur(20px); 
+            border-radius: var(--apple-radius); 
+            border: 1px solid rgba(255, 255, 255, 0.4); 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .card-product { 
+            cursor: pointer; 
+            border: 1px solid transparent;
+        }
+        .card-product:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.08); 
+            border-color: var(--apple-blue);
+        }
+
+        .btn-apple-primary {
+            background-color: var(--apple-blue);
+            color: #fff;
+            border-radius: 30px;
+            padding: 8px 20px;
+            font-weight: 500;
+            border: none;
+            transition: background 0.2s;
+        }
+        .btn-apple-primary:hover {
+            background-color: #0077ed;
+            color: #fff;
+        }
+
+        .nav-pills .nav-link {
+            color: var(--apple-dark);
+            border-radius: 20px;
+            padding: 6px 18px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--apple-dark);
+            color: #fff;
+        }
+
         #login-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(245, 245, 247, 0.98); z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle at center, #ffffff 0%, #e8e8ed 100%);
+            z-index: 9999; display: flex; align-items: center; justify-content: center;
         }
-        .login-card { width: 100%; max-width: 400px; padding: 30px; border-radius: 18px; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        .apple-logo-svg { width: 42px; height: 42px; fill: currentColor; }
 
         @media print {
             body * { visibility: hidden; }
-            #printable-invoice, #printable-invoice *, #printable-ticket, #printable-ticket *, #printable-label, #printable-label * { visibility: visible; }
-            #printable-invoice, #printable-ticket, #printable-label { position: absolute; left: 0; top: 0; width: 100%; }
+            #printable-invoice, #printable-invoice *, 
+            #printable-ticket, #printable-ticket *, 
+            #printable-shipping, #printable-shipping * { visibility: visible; }
+            #printable-invoice, #printable-ticket, #printable-shipping { position: absolute; left: 0; top: 0; width: 100%; }
             .no-print { display: none !important; }
         }
 
-        .ticket-box {
-            font-family: 'Courier New', Courier, monospace;
-            width: 260px; margin: 0 auto; color: #000; text-align: left; direction: ltr; font-size: 13px; line-height: 1.3;
+        /* بوليصة Aramex الرسمية */
+        .aramex-waybill {
+            width: 100%; max-width: 650px; border: 2px solid #000; padding: 20px; margin: 0 auto; background: #fff; font-family: Arial, sans-serif; direction: ltr; text-align: left;
         }
-        .pickup-label-box {
-            width: 220px; border: 2px solid #000; padding: 10px; margin: 0 auto; text-align: center; font-family: sans-serif;
-        }
+        .aramex-header { border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .aramex-title { font-size: 24px; font-weight: bold; color: #db2323; }
     </style>
 </head>
 <body>
 
-<!-- 🔒1. شاشة تسجيل الدخول والصلاحيات -->
+<!-- 🔒1. شاشة تسجيل الدخول بستايل Apple -->
 <div id="login-screen">
-    <div class="login-card text-center">
-        <h3 class="fw-bold mb-1"> Apple Store POS</h3>
-        <p class="text-muted small mb-4">نظام المبيعات وتتبع الأجهزة المعتمد</p>
+    <div class="apple-card p-5 text-center" style="width: 100%; max-width: 420px;">
+        <svg class="apple-logo-svg mb-3" viewBox="0 0 170 170">
+            <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.14-1.92-14.38-6.15-3.37-2.8-7.3-7.53-11.8-14.19-6.3-9.33-11.19-19.67-14.67-31.02-3.48-11.35-5.22-22.18-5.22-32.48 0-14.57 3.73-26.12 11.19-34.64 7.46-8.52 16.82-12.9 28.08-13.14 4.58 0 9.77 1.18 15.57 3.53 5.8 2.36 9.87 3.54 12.22 3.54 1.96 0 6.13-1.24 12.52-3.73 6.39-2.49 11.83-3.6 16.32-3.35 12.08.66 21.6 5.03 28.56 13.12-10.87 6.53-16.19 15.67-15.96 27.42.23 9.35 3.82 17.18 10.78 23.49 6.96 6.31 15.22 9.88 24.78 10.72-2.52 7.42-5.87 15.11-10.05 23.07zM119.22 31.84c0-7.07 2.58-13.78 7.74-20.13 5.16-6.35 11.66-10.15 19.5-11.4 1.09 7.83-1.28 15.14-7.1 21.93-5.83 6.79-12.8 10.59-20.9 11.4-.11-.6-.24-1.2-.24-1.8z"/>
+        </svg>
+        <h4 class="fw-bold mb-1">APPLE STORE</h4>
+        <p class="text-muted small mb-4">نظام المبيعات وبوالص الشحن المعتمد</p>
         <form onsubmit="handleLogin(event)">
             <div class="mb-3 text-start">
-                <label class="form-label small">اسم المستخدم</label>
-                <select id="login-user" class="form-select">
-                    <option value="admin">مدير المتجر (Admin)</option>
+                <label class="form-label small fw-semibold">صلاحية المستخدم</label>
+
+                <select id="login-user" class="form-select rounded-3">
+                    <option value="admin">مدير النظام (Admin)</option>
                     <option value="cashier">كاشير المبيعات (Cashier)</option>
                 </select>
             </div>
-            <div class="mb-3 text-start">
-                <label class="form-label small">كلمة المرور</label>
-                <input type="password" id="login-pass" class="form-control" value="1234" required>
+            <div class="mb-4 text-start">
+                <label class="form-label small fw-semibold">كلمة المرور</label>
+                <input type="password" id="login-pass" class="form-control rounded-3" value="1234" required>
             </div>
-            <button type="submit" class="btn btn-dark w-100 py-2 fw-bold">تسجيل الدخول</button>
+            <button type="submit" class="btn btn-dark w-100 py-2 fw-bold rounded-pill">تسجيل الدخول</button>
         </form>
     </div>
 </div>
 
 <!-- 📱2. الواجهة الرئيسية -->
-<div class="container-fluid py-3 no-print" id="main-app" style="display:none;">
-    <div class="row mb-3 align-items-center">
-        <div class="col-md-5">
-            <h3 class="fw-bold mb-0"> Apple Store</h3>
-            <small class="text-muted">المستخدم الحالي: <span id="current-user-display" class="fw-bold text-dark"></span></small>
+<div class="container-fluid py-4 no-print" id="main-app" style="display:none;">
+    <!-- الهيدر العلوي -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <svg class="apple-logo-svg" style="width: 28px; height:28px;" viewBox="0 0 170 170"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.14-1.92-14.38-6.15-3.37-2.8-7.3-7.53-11.8-14.19-6.3-9.33-11.19-19.67-14.67-31.02-3.48-11.35-5.22-22.18-5.22-32.48 0-14.57 3.73-26.12 11.19-34.64 7.46-8.52 16.82-12.9 28.08-13.14 4.58 0 9.77 1.18 15.57 3.53 5.8 2.36 9.87 3.54 12.22 3.54 1.96 0 6.13-1.24 12.52-3.73 6.39-2.49 11.83-3.6 16.32-3.35 12.08.66 21.6 5.03 28.56 13.12-10.87 6.53-16.19 15.67-15.96 27.42.23 9.35 3.82 17.18 10.78 23.49 6.96 6.31 15.22 9.88 24.78 10.72-2.52 7.42-5.87 15.11-10.05 23.07zM119.22 31.84c0-7.07 2.58-13.78 7.74-20.13 5.16-6.35 11.66-10.15 19.5-11.4 1.09 7.83-1.28 15.14-7.1 21.93-5.83 6.79-12.8 10.59-20.9 11.4-.11-.6-.24-1.2-.24-1.8z"/></svg>
+            <h3 class="fw-bold mb-0">APPLE STORE</h3>
         </div>
-        <div class="col-md-7 text-end">
-            <button class="btn btn-outline-dark btn-sm me-1" onclick="toggleView('pos')">🛒 المبيعات</button>
-            <button class="btn btn-outline-primary btn-sm me-1" onclick="toggleView('pickup')">📦 الاستلام من الفرع <span class="badge bg-primary" id="pickup-count">0</span></button>
-            <button class="btn btn-outline-secondary btn-sm me-1" onclick="toggleView('serials')">🔍 الاستعلام عن السيريال والضمان</button>
-            <button class="btn btn-success btn-sm me-1" onclick="openNewPickupModal()">➕ طلب أونلاين</button>
-            <button class="btn btn-outline-danger btn-sm" onclick="logout()">خروج</button>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-dark btn-sm rounded-pill" onclick="toggleView('pos')">🛒 نقاط البيع</button>
+            <button class="btn btn-outline-dark btn-sm rounded-pill" onclick="toggleView('serials')">🔍 الاستعلام والضمان</button>
+            <button class="btn btn-warning btn-sm rounded-pill text-dark fw-bold" onclick="openNewShippingModal()">🚚 إنشاء طلب أونلاين وبوليصة شحن</button>
+            <button class="btn btn-light btn-sm rounded-pill text-danger" onclick="logout()">خروج</button>
         </div>
     </div>
 
-    <!-- شاشة المبيعات -->
-    <div id="pos-view" class="row">
+    <!-- شاشة المبيعات POS -->
+    <div id="pos-view" class="row g-4">
         <div class="col-md-7">
-            <!-- شريط الباركود والتصنيفات -->
-            <div class="bg-white p-2 rounded shadow-sm mb-3 d-flex gap-2">
-                <input type="text" id="barcode-input" class="form-control form-control-sm" placeholder="امسح باركود المنتج أو ادخل رمز SKU..." onkeypress="handleBarcodeScan(event)">
-                <button class="btn btn-sm btn-dark" onclick="openCameraScanner()">📷 الكاميرا</button>
+            <!-- الباحث والباركود -->
+            <div class="apple-card p-2 mb-3 d-flex gap-2 align-items-center">
+                <input type="text" id="barcode-input" class="form-control border-0 bg-transparent shadow-none" placeholder="امسح الباركود أو ابحث عن المنتج (مثال: iPhone 17 Pro Max)..." onkeypress="handleBarcodeScan(event)">
+                <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="openCameraScanner()">📷 كاميرا</button>
             </div>
 
-            <ul class="nav nav-pills mb-3 bg-white p-2 rounded shadow-sm" id="menu-categories">
+            <!-- الفئات -->
+            <ul class="nav nav-pills mb-3 bg-white p-2 rounded-pill shadow-sm" id="menu-categories">
                 <li class="nav-item"><a class="nav-link active" href="#" onclick="filterCategory('الكل', this)">الكل</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" onclick="filterCategory('iPhone', this)">iPhone</a></li>
                 <li class="nav-item"><a class="nav-link" href="#" onclick="filterCategory('MacBook', this)">MacBook</a></li>
@@ -96,79 +161,57 @@
                 <li class="nav-item"><a class="nav-link" href="#" onclick="filterCategory('AirPods', this)">AirPods</a></li>
             </ul>
 
+            <!-- شبكة المنتجات -->
             <div class="row g-3" id="products-grid"></div>
         </div>
 
+        <!-- سلة الشراء والإنشاء -->
         <div class="col-md-5">
-            <div class="invoice-box">
-                <h5 class="fw-bold border-bottom pb-2">تفاصيل الفاتورة والتشغيل</h5>
+            <div class="apple-card p-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">تفاصيل الفاتورة والطلب</h5>
                 
-                <div class="row g-2 mb-2">
+                <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="form-label small fw-bold">نوع الطلب:</label>
-                        <select id="order-type" class="form-select form-select-sm" onchange="togglePickupFields()">
-                            <option value="شراء من الفرع">شراء مباشر من الفرع</option>
-                            <option value="استلام أونلاين">استلام أونلاين من الفرع (Pickup)</option>
+                        <select id="order-type" class="form-select form-select-sm rounded-3">
+                            <option value="شراء مباشر من الفرع">شراء مباشر من الفرع</option>
+                            <option value="توصيل شحن (أونلاين)">توصيل شحن (أونلاين)</option>
                         </select>
                     </div>
                     <div class="col-6">
                         <label class="form-label small fw-bold">طريقة الدفع:</label>
-                        <select id="payment-method" class="form-select form-select-sm">
-                            <option value="مدى / Apple Pay (POS)">مدى / Apple Pay (جهاز الشبكة)</option>
+                        <select id="payment-method" class="form-select form-select-sm rounded-3">
+                            <option value="مدى / Apple Pay">مدى / Apple Pay</option>
                             <option value="بطاقة ائتمانية">بطاقة ائتمانية</option>
-                            <option value="كاش">كاش (نقدي)</option>
-                            <option value="مدفوع أونلاين">مدفوع مسبقاً (أونلاين)</option>
+                            <option value="نقداً (كاش)">نقداً (كاش)</option>
+                            <option value="مدفوع أونلاين">مدفوع أونلاين</option>
                         </select>
                     </div>
                 </div>
 
-                <div class="row g-2 mb-2" id="online-order-container" style="display:none;">
-                    <div class="col-12">
-                        <input type="text" id="online-order-id" class="form-control form-control-sm border-primary" placeholder="رقم طلب الأونلاين (مثال: WEB-998822)">
-                    </div>
-                </div>
-
-                <!--  بيانات الجهاز والتسجيل -->
-                <div class="bg-light p-2 rounded mb-3 border">
-                    <h6 class="fw-bold text-dark mb-2 small"> بيانات الجهاز والعميل:</h6>
+                <!-- بيانات الجهاز والعميل -->
+                <div class="bg-light p-3 rounded-3 mb-3 border">
+                    <h6 class="fw-bold mb-2 small text-primary"> بيانات السيريال و iCloud للعميل:</h6>
                     <div class="mb-2">
-                        <input type="email" id="customer-icloud" class="form-control form-control-sm" placeholder="عنوان iCloud للعميل">
+                        <input type="email" id="customer-icloud" class="form-control form-control-sm" placeholder="حساب iCloud للعميل (اختياري)">
                     </div>
                     <div class="input-group input-group-sm mb-2">
-                        <input type="text" id="device-serial" class="form-control" placeholder="الرقم التسلسلي (Serial Number/IMEI)">
-                        <button class="btn btn-outline-secondary" type="button" onclick="openSerialScanner()">📷 مسح</button>
+                        <input type="text" id="device-serial" class="form-control" placeholder="الرقم التسلسلي (S/N / IMEI)">
+                        <button class="btn btn-outline-secondary" onclick="openSerialScanner()">📷 مسح</button>
                     </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="apple-care">
-                        <label class="form-check-label small fw-bold" for="apple-care">تغطية الضمان الممتد AppleCare+ 🛡️</label>
+                        <label class="form-check-label small fw-bold" for="apple-care">تفعيل تغطية AppleCare+ 🛡️</label>
                     </div>
                 </div>
 
-                <!-- خيارات الخصم (للمدير فقط) -->
-                <div class="row g-2 mb-2" id="discount-container" style="display:none;">
-                    <div class="col-12">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-warning text-dark fw-bold">خصم خاص (مدير)</span>
-                            <input type="number" id="discount-input" class="form-control" value="0" onchange="updateCart()">
-                            <span class="input-group-text">ر.س</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-2">
-                    <label class="form-label small fw-bold">نوع الفاتورة:</label>
-                    <select id="print-type" class="form-select form-select-sm">
-                        <option value="tax_invoice">📄 فاتورة ضريبية معتمدة (ZATCA Phase 2)</option>
-                        <option value="ticket">🎫 تيكيت تسليم (Ticket Style)</option>
-                    </select>
-                </div>
-
-                <div class="table-responsive mb-2" style="max-height: 150px; overflow-y: auto;">
+                <!-- سلة العناصر -->
+                <div class="table-responsive mb-3" style="max-height: 180px; overflow-y: auto;">
                     <table class="table table-sm align-middle">
                         <thead>
                             <tr>
                                 <th>المنتج</th>
-                                <th>الكمية</th>
+                                <th>العدد</th>
                                 <th>السعر</th>
                                 <th></th>
                             </tr>
@@ -177,47 +220,34 @@
                     </table>
                 </div>
 
-                <div class="border-top pt-2">
+                <!-- الحسابات -->
+                <div class="border-top pt-2 mb-3">
                     <div class="d-flex justify-content-between mb-1">
-                        <span>المبلغ الخاضع للضريبة:</span>
+                        <span class="text-muted">المبلغ قبل الضريبة:</span>
                         <span id="subtotal">0.00 ر.س</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1 text-muted">
                         <span>ضريبة القيمة المضافة (15%):</span>
                         <span id="tax-amount">0.00 ر.س</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-1 text-danger" id="discount-display-row" style="display:none;">
-                        <span>الخصم المطبق:</span>
-                        <span id="discount-amount">0.00 ر.س</span>
-                    </div>
-                    <div class="d-flex justify-content-between fw-bold fs-5 text-dark border-top pt-1">
-                        <span>الإجمالي الكلي:</span>
+                    <div class="d-flex justify-content-between fw-bold fs-5 border-top pt-2 text-dark">
+                        <span>الإجمالي النهائي:</span>
                         <span id="total-amount">0.00 ر.س</span>
                     </div>
                 </div>
 
-                <div class="d-grid gap-2 mt-3">
-                    <button class="btn btn-dark btn-lg fw-bold" onclick="processSaleWithPOS()">💳 معالجة الدفع وإصدار الفاتورة</button>
-                </div>
+                <button class="btn btn-dark w-100 py-2 fw-bold rounded-pill" onclick="processSaleWithPOS()">💳 إصدار الفاتورة الضريبية </button>
             </div>
         </div>
     </div>
 
-    <!-- شاشة الاستلام أونلاين -->
-    <div id="pickup-view" class="row g-3" style="display: none;">
-        <div class="col-12 mb-2 d-flex justify-content-between align-items-center">
-            <h4 class="fw-bold text-dark mb-0">📦 طلبات الاستلام الجاهزة بالفرع</h4>
-        </div>
-        <div class="row g-3" id="pickup-orders-container"></div>
-    </div>
-
-    <!-- شاشة الاستعلام عن الضمان والسيريال -->
+    <!-- شاشة تتبع الضمان -->
     <div id="serials-view" class="row g-3" style="display: none;">
         <div class="col-12">
-            <div class="card p-3 apple-card">
-                <h5 class="fw-bold mb-3">🔍 الاستعلام عن الرقم التسلسلي والضمان (Serial Number Tracking)</h5>
+            <div class="apple-card p-4">
+                <h5 class="fw-bold mb-3">🔍 الاستعلام عن السيريال وتغطية الضمان</h5>
                 <div class="input-group mb-3">
-                    <input type="text" id="search-serial-input" class="form-control" placeholder="ادخل الرقم التسلسلي (S/N) للبحث عن الفاتورة والضمان...">
+                    <input type="text" id="search-serial-input" class="form-control" placeholder="ادخل الرقم التسلسلي (S/N) أو رقم الفاتورة...">
                     <button class="btn btn-dark" onclick="searchSerialNumber()">بحث</button>
                 </div>
                 <div id="serial-search-result"></div>
@@ -226,12 +256,82 @@
     </div>
 </div>
 
-<!-- Modal الكاميرا لمسح الباركود -->
+<!-- Modal إنشاء طلب أونلاين وبوليصة شحن Aramex / DHL -->
+<div class="modal fade" id="shippingModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">🚚 إنشاء طلب أونلاين وبوليصة شحن فورية</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">شركة الشحن (Carrier):</label>
+                <select id="ship-courier" class="form-select" onchange="updateAwbFormat()">
+                    <option value="Aramex">أرامكس (Aramex Express)</option>
+                    <option value="DHL">دي إتش إل (DHL Express)</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">رقم الشحنة (AWB):</label>
+                <input type="text" id="ship-awb" class="form-control bg-light" readonly>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">اسم العميل (المستلم):</label>
+                <input type="text" id="ship-name" class="form-control" placeholder="مثال: أحمد محمود">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">رقم الجوال:</label>
+                <input type="text" id="ship-phone" class="form-control" placeholder="05xxxxxxxx">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">المدينة:</label>
+                <input type="text" id="ship-city" class="form-control" placeholder="الرياض / جدة / الدمام">
+            </div>
+            <div class="col-md-8">
+                <label class="form-label small fw-bold">العنوان التفصيلي:</label>
+                <input type="text" id="ship-address" class="form-control" placeholder="الحي، الشارع، رقم المنزل">
+            </div>
+            <div class="col-md-12">
+                <label class="form-label small fw-bold">المنتجات المطلوبة:</label>
+                <input type="text" id="ship-items" class="form-control" value="iPhone 17 Pro Max 256GB - Natural Titanium">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">حالة الدفع:</label>
+                <select id="ship-payment-status" class="form-select">
+                    <option value="Prepaid (مدفوع أونلاين)">مدفوع أونلاين (Prepaid)</option>
+                    <option value="COD (الدفع عند الاستلام)">الدفع عند الاستلام (COD)</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small fw-bold">تاريخ التوصيل المتوقع:</label>
+                <input type="text" id="ship-delivery-date" class="form-control bg-light" readonly>
+            </div>
+        </div>
+
+        <!-- صندوق رابط التتبع التفاعلي -->
+        <div class="alert alert-info mt-3 mb-0 d-flex justify-content-between align-items-center">
+            <div>
+                <small class="d-block text-muted">رابط التتبع المباشر للشحنة:</small>
+                <strong id="generated-tracking-link" class="text-break">https://www.aramex.com/track/shipments?q=...</strong>
+            </div>
+            <button class="btn btn-sm btn-outline-primary ms-2 text-nowrap" onclick="copyTrackingLink()">📋 نسخ الرابط</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-dark w-100 py-2 fw-bold rounded-pill" onclick="generateAndPrintWaybill()">🖨️ طباعة بوليصة الشحن الرسمية</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal الكاميرا -->
 <div class="modal fade" id="scannerModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">مسح الباركود / السيريال</h5>
+        <h5 class="modal-title">مسح الباركود</h5>
         <button type="button" class="btn-close" onclick="stopCameraScanner()"></button>
       </div>
       <div class="modal-body text-center">
@@ -241,31 +341,12 @@
   </div>
 </div>
 
-<!-- Modal طلب أونلاين جديد -->
-<div class="modal fade" id="newPickupModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold">إنشاء طلب أونلاين جاهز للاستلام</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-2"><label class="form-label small">رقم الطلب الأونلاين:</label><input type="text" id="new-online-id" class="form-control" placeholder="مثال: WEB-5544"></div>
-        <div class="mb-2"><label class="form-label small">اسم العميل:</label><input type="text" id="new-cust-name" class="form-control" placeholder="اسم العميل"></div>
-        <div class="mb-2"><label class="form-label small">الجهاز المطلوب:</label><input type="text" id="new-cust-item" class="form-control" placeholder="iPhone 16 Pro Max"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary w-100" onclick="saveNewPickupOrder()">حفظ وطباعة ملصق الصندوق 🏷️</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 🖨️ 1. الفاتورة الضريبية ZATCA Phase 2 Prepared -->
-<div id="printable-invoice" class="p-3 bg-white" style="display: none; max-width: 300px; margin: 0 auto; font-family: monospace;">
+<!-- 🖨️ 1. الفاتورة الضريبية ZATCA - APPLE STORE -->
+<div id="printable-invoice" class="p-4 bg-white" style="display: none; max-width: 340px; margin: 0 auto; font-family: monospace;">
     <div class="text-center mb-2">
-        <h4 class="fw-bold m-0"> Apple Store</h4>
-        <small class="d-block">شركة متجر تفاحة المعتمد</small>
+        <svg class="apple-logo-svg mb-1" style="width:35px; height:35px;" viewBox="0 0 170 170"><path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.34.13-9.14-1.92-14.38-6.15-3.37-2.8-7.3-7.53-11.8-14.19-6.3-9.33-11.19-19.67-14.67-31.02-3.48-11.35-5.22-22.18-5.22-32.48 0-14.57 3.73-26.12 11.19-34.64 7.46-8.52 16.82-12.9 28.08-13.14 4.58 0 9.77 1.18 15.57 3.53 5.8 2.36 9.87 3.54 12.22 3.54 1.96 0 6.13-1.24 12.52-3.73 6.39-2.49 11.83-3.6 16.32-3.35 12.08.66 21.6 5.03 28.56 13.12-10.87 6.53-16.19 15.67-15.96 27.42.23 9.35 3.82 17.18 10.78 23.49 6.96 6.31 15.22 9.88 24.78 10.72-2.52 7.42-5.87 15.11-10.05 23.07zM119.22 31.84c0-7.07 2.58-13.78 7.74-20.13 5.16-6.35 11.66-10.15 19.5-11.4 1.09 7.83-1.28 15.14-7.1 21.93-5.83 6.79-12.8 10.59-20.9 11.4-.11-.6-.24-1.2-.24-1.8z"/></svg>
+        <h4 class="fw-bold m-0">APPLE STORE</h4>
+        <small class="d-block">الموزع المعتمد - Apple Authorized Reseller</small>
         <small class="d-block">الرقم الضريبي: 310998877600003</small>
         <small class="d-block" id="inv-date"></small>
     </div>
@@ -274,12 +355,11 @@
     <div style="border-top: 1px dashed #000;" class="my-2"></div>
     <div><strong>رقم الفاتورة:</strong> <span id="inv-number"></span></div>
     <div><strong>نوع الخدمة:</strong> <span id="inv-type"></span></div>
-    <div id="inv-online-id-box" style="display:none;"><strong>مرجع الأونلاين:</strong> <span id="inv-online-id"></span></div>
     <div><strong>طريقة الدفع:</strong> <span id="inv-pay-method"></span></div>
     <div style="border-top: 1px dashed #000;" class="my-2"></div>
     <div><strong>iCloud العميل:</strong> <span id="inv-icloud"></span></div>
     <div><strong>السيريال (S/N):</strong> <span id="inv-serial"></span></div>
-    <div><strong>حالة AppleCare+:</strong> <span id="inv-applecare"></span></div>
+    <div><strong>AppleCare+:</strong> <span id="inv-applecare"></span></div>
     <div style="border-top: 1px dashed #000;" class="my-2"></div>
     <table class="w-100 fs-6 text-start mb-2">
         <thead>
@@ -294,84 +374,101 @@
     <div style="border-top: 1px dashed #000;" class="my-2"></div>
     <div class="d-flex justify-content-between"><span>المبلغ الخاضع للضريبة:</span><span id="inv-subtotal"></span></div>
     <div class="d-flex justify-content-between"><span>ضريبة القيمة المضافة (15%):</span><span id="inv-tax"></span></div>
-    <div class="d-flex justify-content-between fw-bold fs-6"><span>الإجمالي الكلي:</span><span id="inv-total"></span></div>
+    <div class="d-flex justify-content-between fw-bold fs-6"><span>الإجمالي النهائي:</span><span id="inv-total"></span></div>
     <div style="border-top: 1px dashed #000;" class="my-2"></div>
     <div class="text-center mt-2">
         <div id="qrcode" class="d-flex justify-content-center"></div>
-        <small class="d-block mt-1">رمز ZATCA المشفر - مرحلة الربط</small>
+        <small class="d-block mt-1">رمز ZATCA المشفر</small>
     </div>
 </div>
 
-<!-- 🖨️ 2. التيكيت -->
-<div id="printable-ticket" style="display: none;">
-    <div class="ticket-box">
-        <div>Receipt1 - Apple Pickup</div>
-        <div>****************************************</div>
-        <br>
-        <div style="text-align: right;" id="tkt-date">9/7/2026</div>
-        <div>Apple Specialist<span style="float: right;" id="tkt-time">2:00 PM</span></div>
-        <div style="font-weight: bold;" id="tkt-type">In-Store Pickup</div>
-        <div>Check: <span id="tkt-check">10257</span></div>
-        <br>
-        <div>iCloud: <span id="tkt-icloud">-</span></div>
-        <div>S/N: <span id="tkt-serial">-</span></div>
-        <div>AppleCare+: <span id="tkt-applecare">No</span></div>
-        <br>
-        <div style="font-weight: bold;">Items Handed:</div>
-        <div style="font-weight: bold; font-size: 15px; margin-top: 5px;" id="tkt-items"></div>
-    </div>
-</div>
+<!-- 🖨️ 2. بوليصة شحن Aramex الرسمية (Waybill) -->
+<div id="printable-shipping" style="display: none;">
+    <div class="aramex-waybill">
+        <div class="d-flex justify-content-between align-items-center aramex-header">
+            <div>
+                <div class="aramex-title" id="wb-carrier-title">aramex</div>
+                <small class="fw-bold">EXPRESS SHIPMENT WAYBILL</small>
+            </div>
+            <div class="text-end">
+                <h5 class="fw-bold m-0">APPLE STORE</h5>
+                <small>Official Fulfillment Center</small>
+            </div>
+        </div>
 
-<!-- 🖨️ 3. ملصق الاستلام الصندوق (Pickup Label Printer) -->
-<div id="printable-label" style="display: none;">
-    <div class="pickup-label-box">
-        <h4 style="margin:0; font-weight:bold;"> Apple Store</h4>
-        <p style="margin:2px 0;">طلب استلام فرع (Pickup)</p>
-        <hr style="margin:5px 0;">
-        <h3 style="margin:5px 0; font-weight:bold;" id="lbl-id">WEB-0000</h3>
-        <p style="margin:2px 0;">العميل: <strong id="lbl-cust"></strong></p>
-        <p style="margin:2px 0;">الجهاز: <span id="lbl-item"></span></p>
+        <div class="text-center my-3">
+            <svg id="wb-barcode"></svg>
+            <div class="fw-bold fs-5" id="wb-awb-display">AWB: 31398877123</div>
+        </div>
+
+        <div class="row border-top border-bottom py-2 my-2" style="border-color: #000 !important;">
+            <div class="col-6 border-end" style="border-color: #000 !important;">
+                <strong class="d-block text-uppercase border-bottom pb-1 mb-1">From (Shipper):</strong>
+                <div><strong>APPLE STORE Authorized</strong></div>
+                <div>Main Logistics Hub</div>
+                <div>Riyadh, Saudi Arabia</div>
+                <div>Phone: +966 9200 00000</div>
+            </div>
+            <div class="col-6">
+                <strong class="d-block text-uppercase border-bottom pb-1 mb-1">To (Consignee):</strong>
+                <div>Name: <strong id="wb-to-name">---</strong></div>
+                <div>Phone: <span id="wb-to-phone">---</span></div>
+                <div>City: <strong id="wb-to-city">---</strong></div>
+                <div>Address: <span id="wb-to-address">---</span></div>
+            </div>
+        </div>
+
+        <div class="row py-2">
+            <div class="col-12 mb-2">
+                <strong>Shipment Contents:</strong>
+                <div class="p-2 border rounded mt-1 fw-bold bg-light" id="wb-items-desc">iPhone 17 Pro Max 256GB</div>
+            </div>
+            <div class="col-6">
+                <strong>Payment Term:</strong> <span id="wb-payment-type" class="fw-bold">Prepaid</span>
+            </div>
+            <div class="col-6">
+                <strong>Est. Delivery Date:</strong> <span id="wb-delivery-date" class="fw-bold">---</span>
+            </div>
+        </div>
+
+        <div class="border-top pt-2 mt-2 text-center small text-muted" style="border-color: #000 !important;">
+            Tracking URL: <span id="wb-tracking-url" class="fw-bold text-dark">https://www.aramex.com/track/shipments</span>
+        </div>
     </div>
 </div>
 
 <script>
+    //  قائمة جميع المنتجات مع إضافة iPhone 17 Pro Max
     const appleProducts = [
-        { id: 1, sku: '194253001', name: 'iPhone 16 Pro Max 256GB', category: 'iPhone', price: 5199.00, stock: 10 },
-        { id: 2, sku: '194253002', name: 'iPhone 16 Pro 128GB', category: 'iPhone', price: 4699.00, stock: 8 },
-        { id: 3, sku: '194253003', name: 'MacBook Air M3 13" 256GB', category: 'MacBook', price: 4599.00, stock: 5 },
-        { id: 4, sku: '194253004', name: 'MacBook Pro M3 Pro 16"', category: 'MacBook', price: 9499.00, stock: 3 },
-        { id: 5, sku: '194253005', name: 'iPad Pro M4 11" 256GB', category: 'iPad', price: 4199.00, stock: 7 },
-        { id: 6, sku: '194253006', name: 'Apple Watch Series 10', category: 'Watch', price: 1599.00, stock: 12 },
-        { id: 7, sku: '194253007', name: 'AirPods Pro (2nd Gen)', category: 'AirPods', price: 949.00, stock: 25 }
+        { id: 1, sku: '194253101', name: 'iPhone 17 Pro Max 256GB', category: 'iPhone', price: 5499.00, stock: 15 },
+        { id: 2, sku: '194253102', name: 'iPhone 17 Pro Max 512GB', category: 'iPhone', price: 6199.00, stock: 10 },
+        { id: 3, sku: '194253103', name: 'iPhone 17 Pro 256GB', category: 'iPhone', price: 4999.00, stock: 12 },
+        { id: 4, sku: '194253001', name: 'iPhone 16 Pro Max 256GB', category: 'iPhone', price: 5099.00, stock: 8 },
+        { id: 5, sku: '194253003', name: 'MacBook Air M3 13" 256GB', category: 'MacBook', price: 4599.00, stock: 6 },
+        { id: 6, sku: '194253004', name: 'MacBook Pro M3 Pro 16"', category: 'MacBook', price: 9499.00, stock: 4 },
+        { id: 7, sku: '194253005', name: 'iPad Pro M4 11" 256GB', category: 'iPad', price: 4199.00, stock: 9 },
+        { id: 8, sku: '194253006', name: 'Apple Watch Series 10', category: 'Watch', price: 1599.00, stock: 14 },
+        { id: 9, sku: '194253008', name: 'Apple Watch Ultra 2', category: 'Watch', price: 3199.00, stock: 5 },
+        { id: 10, sku: '194253007', name: 'AirPods Pro (2nd Gen)', category: 'AirPods', price: 949.00, stock: 30 },
+        { id: 11, sku: '194253009', name: 'AirPods Max (USB-C)', category: 'AirPods', price: 2199.00, stock: 7 }
     ];
 
     let cart = [];
-    let currentUserRole = 'cashier';
+    let salesHistory = JSON.parse(localStorage.getItem('apple_sales_v5')) || [];
+    let currentCategory = 'الكل';
     let html5QrCode = null;
     let scanTarget = 'product';
 
-    let pickupOrders = JSON.parse(localStorage.getItem('apple_pickup_orders_v3')) || [];
-    let salesHistory = JSON.parse(localStorage.getItem('apple_sales_history_v3')) || [];
-    let currentCategory = 'الكل';
-
-    const SELLER_NAME = "شركة متجر تفاحة المعتمد";
+    const SELLER_NAME = "APPLE STORE";
     const VAT_NUMBER = "310998877600003";
 
     function handleLogin(e) {
         e.preventDefault();
-        currentUserRole = document.getElementById('login-user').value;
         const p = document.getElementById('login-pass').value;
-
         if (p === '1234') {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('main-app').style.display = 'block';
-            document.getElementById('current-user-display').innerText = currentUserRole === 'admin' ? 'مدير النظام (Admin)' : 'كاشير المبيعات (Cashier)';
-            
-            // تخصيص الواجهة حسب الصلاحية
-            document.getElementById('discount-container').style.display = currentUserRole === 'admin' ? 'block' : 'none';
-            
             renderProducts();
-            renderPickupOrders();
         } else {
             alert('كلمة المرور غير صحيحة!');
         }
@@ -390,11 +487,11 @@
         filtered.forEach(p => {
             grid.innerHTML += `
                 <div class="col-md-4">
-                    <div class="card apple-card card-product p-3 text-center position-relative" onclick="addToCart(${p.id})">
-                        <span class="badge bg-secondary badge-stock">المخزون: ${p.stock}</span>
-                        <h6 class="fw-bold mt-2 mb-1">${p.name}</h6>
-                        <small class="text-muted d-block mb-1">SKU: ${p.sku}</small>
-                        <span class="text-dark fw-bold fs-6">${p.price.toFixed(2)} ر.س</span>
+                    <div class="apple-card card-product p-3 text-center position-relative" onclick="addToCart(${p.id})">
+                        <span class="badge bg-secondary position-absolute top-0 start-0 m-2">المخزون: ${p.stock}</span>
+                        <h6 class="fw-bold mt-3 mb-1">${p.name}</h6>
+                        <small class="text-muted d-block mb-2">SKU: ${p.sku}</small>
+                        <span class="text-primary fw-bold fs-6">${p.price.toFixed(2)} ر.س</span>
                     </div>
                 </div>
             `;
@@ -416,7 +513,7 @@
                 addToCart(prod.id);
                 e.target.value = '';
             } else {
-                alert('لم يتم العثور على منتج بهذا الباركود!');
+                alert('لم يتم العثور على المنتج!');
             }
         }
     }
@@ -448,26 +545,17 @@
                         <button class="btn btn-sm btn-light py-0" onclick="changeQty(${idx}, 1)">+</button>
                     </td>
                     <td>${itemTotal.toFixed(2)}</td>
-                    <td><button class="btn btn-sm btn-outline-danger py-0" onclick="removeItem(${idx})">×</button></td>
+                    <td><button class="btn btn-sm text-danger py-0 border-0" onclick="removeItem(${idx})">×</button></td>
                 </tr>
             `;
         });
 
-        let discount = currentUserRole === 'admin' ? parseFloat(document.getElementById('discount-input').value || 0) : 0;
-        let subtotal = Math.max(0, total - discount);
-        let vat = subtotal * 0.15;
-        let grandTotal = subtotal + vat;
+        let vat = total * 0.15;
+        let grandTotal = total + vat;
 
-        document.getElementById('subtotal').innerText = subtotal.toFixed(2) + ' ر.س';
+        document.getElementById('subtotal').innerText = total.toFixed(2) + ' ر.س';
         document.getElementById('tax-amount').innerText = vat.toFixed(2) + ' ر.س';
         document.getElementById('total-amount').innerText = grandTotal.toFixed(2) + ' ر.س';
-        
-        if(discount > 0) {
-            document.getElementById('discount-display-row').style.display = 'flex';
-            document.getElementById('discount-amount').innerText = discount.toFixed(2) + ' ر.س';
-        } else {
-            document.getElementById('discount-display-row').style.display = 'none';
-        }
     }
 
     function changeQty(idx, delta) {
@@ -478,7 +566,75 @@
 
     function removeItem(idx) { cart.splice(idx, 1); updateCart(); }
 
-    // توليد ZATCA TLV Base64
+    function openNewShippingModal() {
+        updateAwbFormat();
+        
+        // حساب تاريخ التوصيل التقديري (بعد 3 أيام)
+        const deliveryDate = new Date();
+        deliveryDate.setDate(deliveryDate.getDate() + 3);
+        document.getElementById('ship-delivery-date').value = deliveryDate.toLocaleDateString('ar-SA');
+
+        new bootstrap.Modal(document.getElementById('shippingModal')).show();
+    }
+
+    function updateAwbFormat() {
+        const courier = document.getElementById('ship-courier').value;
+        const randomNum = Math.floor(1000000000 + Math.random() * 9000000000);
+        let awb = '';
+        let link = '';
+
+        if (courier === 'Aramex') {
+            awb = '31' + randomNum.toString().substring(0, 9);
+            link = `https://www.aramex.com/track/shipments?q=${awb}`;
+        } else {
+            awb = 'DHL-' + Math.floor(10000000 + Math.random() * 90000000);
+            link = `https://www.dhl.com/sa-en/home/tracking.html?tracking-id=${awb}`;
+        }
+
+        document.getElementById('ship-awb').value = awb;
+        document.getElementById('generated-tracking-link').innerText = link;
+    }
+
+    function copyTrackingLink() {
+        const link = document.getElementById('generated-tracking-link').innerText;
+        navigator.clipboard.writeText(link);
+        alert('تم نسخ رابط التتبع بنجاح!');
+    }
+
+    function generateAndPrintWaybill() {
+        const courier = document.getElementById('ship-courier').value;
+        const awb = document.getElementById('ship-awb').value;
+        const name = document.getElementById('ship-name').value;
+        const phone = document.getElementById('ship-phone').value;
+        const city = document.getElementById('ship-city').value;
+        const address = document.getElementById('ship-address').value;
+        const items = document.getElementById('ship-items').value;
+        const payment = document.getElementById('ship-payment-status').value;
+        const deliveryDate = document.getElementById('ship-delivery-date').value;
+        const trackingUrl = document.getElementById('generated-tracking-link').innerText;
+
+        if (!name || !phone || !city) return alert('يرجى ملء بيانات العميل كاملة!');
+
+        document.getElementById('wb-carrier-title').innerText = courier === 'Aramex' ? 'aramex' : 'DHL Express';
+        document.getElementById('wb-awb-display').innerText = 'AWB: ' + awb;
+        document.getElementById('wb-to-name').innerText = name;
+        document.getElementById('wb-to-phone').innerText = phone;
+        document.getElementById('wb-to-city').innerText = city;
+        document.getElementById('wb-to-address').innerText = address;
+        document.getElementById('wb-items-desc').innerText = items;
+        document.getElementById('wb-payment-type').innerText = payment;
+        document.getElementById('wb-delivery-date').innerText = deliveryDate;
+        document.getElementById('wb-tracking-url').innerText = trackingUrl;
+
+        JsBarcode("#wb-barcode", awb, { format: "CODE128", width: 2, height: 50, displayValue: false });
+
+        document.getElementById('printable-shipping').style.display = 'block';
+        window.print();
+        document.getElementById('printable-shipping').style.display = 'none';
+
+        bootstrap.Modal.getInstance(document.getElementById('shippingModal')).hide();
+    }
+
     function generateZatcaQR(seller, vatNo, datetime, total, vatTotal) {
         function getTlv(tag, value) {
             const enc = new TextEncoder().encode(value);
@@ -496,99 +652,81 @@
     function processSaleWithPOS() {
         if (cart.length === 0) return alert('السلة فارغة!');
 
-        const payMethod = document.getElementById('payment-method').value;
-        if (payMethod.includes('POS')) {
-            alert('📡 جارِ الإرسال لجهاز الشبكة (POS Terminal)... يرجى مرير البطاقة/Apple Pay على الجهاز');
-        }
-
-        setTimeout(() => {
-            executeSale();
-        }, payMethod.includes('POS') ? 1200 : 100);
-    }
-
-    function executeSale() {
         const orderType = document.getElementById('order-type').value;
-        const onlineId = document.getElementById('online-order-id').value;
         const icloud = document.getElementById('customer-icloud').value || 'غير مسجل';
         const serial = document.getElementById('device-serial').value || 'غير مدخل';
         const hasAppleCare = document.getElementById('apple-care').checked ? 'مُفعل (AppleCare+)' : 'غير مشمول';
-        const printType = document.getElementById('print-type').value;
 
         const now = new Date();
         let total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-        let discount = currentUserRole === 'admin' ? parseFloat(document.getElementById('discount-input').value || 0) : 0;
-        let subtotal = Math.max(0, total - discount);
-        let vat = subtotal * 0.15;
-        let grandTotal = subtotal + vat;
+        let vat = total * 0.15;
+        let grandTotal = total + vat;
 
         const checkNo = Math.floor(10000 + Math.random() * 90000);
         const invNo = 'APL-' + checkNo;
 
-        if (printType === 'tax_invoice') {
-            document.getElementById('inv-date').innerText = now.toLocaleString('ar-SA');
-            document.getElementById('inv-number').innerText = invNo;
-            document.getElementById('inv-type').innerText = orderType;
-            document.getElementById('inv-online-id-box').style.display = onlineId ? 'block' : 'none';
-            if(onlineId) document.getElementById('inv-online-id').innerText = onlineId;
+        document.getElementById('inv-date').innerText = now.toLocaleString('ar-SA');
+        document.getElementById('inv-number').innerText = invNo;
+        document.getElementById('inv-type').innerText = orderType;
+        document.getElementById('inv-pay-method').innerText = document.getElementById('payment-method').value;
+        document.getElementById('inv-icloud').innerText = icloud;
+        document.getElementById('inv-serial').innerText = serial;
+        document.getElementById('inv-applecare').innerText = hasAppleCare;
 
-            document.getElementById('inv-pay-method').innerText = document.getElementById('payment-method').value;
-            document.getElementById('inv-icloud').innerText = icloud;
-            document.getElementById('inv-serial').innerText = serial;
-            document.getElementById('inv-applecare').innerText = hasAppleCare;
-
-            const invItems = document.getElementById('inv-items');
-            invItems.innerHTML = '';
-            cart.forEach(item => {
-                invItems.innerHTML += `<tr><td>${item.name}</td><td>${item.qty}</td><td>${(item.price * item.qty).toFixed(2)}</td></tr>`;
-            });
-
-            document.getElementById('inv-subtotal').innerText = subtotal.toFixed(2) + ' ر.س';
-            document.getElementById('inv-tax').innerText = vat.toFixed(2) + ' ر.س';
-            document.getElementById('inv-total').innerText = grandTotal.toFixed(2) + ' ر.س';
-
-            document.getElementById('qrcode').innerHTML = '';
-            const qrBase64 = generateZatcaQR(SELLER_NAME, VAT_NUMBER, now.toISOString(), grandTotal.toFixed(2), vat.toFixed(2));
-            new QRCode(document.getElementById("qrcode"), { text: qrBase64, width: 110, height: 110 });
-
-            document.getElementById('printable-invoice').style.display = 'block';
-            document.getElementById('printable-ticket').style.display = 'none';
-        } else {
-            document.getElementById('tkt-date').innerText = now.toLocaleDateString('en-US');
-            document.getElementById('tkt-time').innerText = now.toLocaleTimeString('en-US');
-            document.getElementById('tkt-type').innerText = orderType;
-            document.getElementById('tkt-check').innerText = checkNo;
-            document.getElementById('tkt-icloud').innerText = icloud;
-            document.getElementById('tkt-serial').innerText = serial;
-            document.getElementById('tkt-applecare').innerText = hasAppleCare;
-
-            const tktItems = document.getElementById('tkt-items');
-            tktItems.innerHTML = '';
-            cart.forEach(item => { tktItems.innerHTML += `<div>${item.qty} x ${item.name}</div>`; });
-
-            document.getElementById('printable-ticket').style.display = 'block';
-            document.getElementById('printable-invoice').style.display = 'none';
-        }
-
-        // حفظ في السجل للتتبع والضمان
-        salesHistory.push({
-            invNo, serial, icloud, appleCare: hasAppleCare, date: now.toLocaleString('ar-SA'), items: [...cart], total: grandTotal
+        const invItems = document.getElementById('inv-items');
+        invItems.innerHTML = '';
+        cart.forEach(item => {
+            invItems.innerHTML += `<tr><td>${item.name}</td><td>${item.qty}</td><td>${(item.price * item.qty).toFixed(2)}</td></tr>`;
         });
-        localStorage.setItem('apple_sales_history_v3', JSON.stringify(salesHistory));
 
+        document.getElementById('inv-subtotal').innerText = total.toFixed(2) + ' ر.س';
+        document.getElementById('inv-tax').innerText = vat.toFixed(2) + ' ر.س';
+        document.getElementById('inv-total').innerText = grandTotal.toFixed(2) + ' ر.س';
+
+        document.getElementById('qrcode').innerHTML = '';
+        const qrBase64 = generateZatcaQR(SELLER_NAME, VAT_NUMBER, now.toISOString(), grandTotal.toFixed(2), vat.toFixed(2));
+        new QRCode(document.getElementById("qrcode"), { text: qrBase64, width: 110, height: 110 });
+
+        salesHistory.push({ invNo, serial, icloud, appleCare: hasAppleCare, date: now.toLocaleString('ar-SA'), items: [...cart], total: grandTotal });
+        localStorage.setItem('apple_sales_v5', JSON.stringify(salesHistory));
+
+        document.getElementById('printable-invoice').style.display = 'block';
         window.print();
-
         document.getElementById('printable-invoice').style.display = 'none';
-        document.getElementById('printable-ticket').style.display = 'none';
 
         cart = [];
         document.getElementById('customer-icloud').value = '';
         document.getElementById('device-serial').value = '';
         document.getElementById('apple-care').checked = false;
-        if(document.getElementById('discount-input')) document.getElementById('discount-input').value = '0';
         updateCart();
     }
 
-    // كاميرا الباركود
+    function searchSerialNumber() {
+        const query = document.getElementById('search-serial-input').value.trim();
+        const resDiv = document.getElementById('serial-search-result');
+        const found = salesHistory.find(s => s.serial === query || s.invNo === query);
+
+        if (found) {
+            resDiv.innerHTML = `
+                <div class="alert alert-success mt-2">
+                    <h5>✔ جهاز مسجل بالنظام:</h5>
+                    <p class="mb-1"><strong>رقم الفاتورة:</strong> ${found.invNo}</p>
+                    <p class="mb-1"><strong>تاريخ الشراء:</strong> ${found.date}</p>
+                    <p class="mb-1"><strong>حساب iCloud:</strong> ${found.icloud}</p>
+                    <p class="mb-1"><strong>تغطية AppleCare+:</strong> ${found.appleCare}</p>
+                    <p class="mb-0"><strong>المبلغ الإجمالي:</strong> ${found.total.toFixed(2)} ر.س</p>
+                </div>
+            `;
+        } else {
+            resDiv.innerHTML = `<div class="alert alert-danger mt-2">❌ لم يتم العثور على أي جهاز مسجل بهذا السيريال.</div>`;
+        }
+    }
+
+    function toggleView(view) {
+        document.getElementById('pos-view').style.display = view === 'pos' ? 'flex' : 'none';
+        document.getElementById('serials-view').style.display = view === 'serials' ? 'flex' : 'none';
+    }
+
     function openCameraScanner() {
         scanTarget = 'product';
         new bootstrap.Modal(document.getElementById('scannerModal')).show();
@@ -609,7 +747,7 @@
         if (scanTarget === 'product') {
             const prod = appleProducts.find(p => p.sku === decodedText);
             if (prod) addToCart(prod.id);
-            else alert('الباركود الممسوح: ' + decodedText);
+            else alert('باركود: ' + decodedText);
         } else {
             document.getElementById('device-serial').value = decodedText;
         }
@@ -618,89 +756,6 @@
     function stopCameraScanner() {
         if (html5QrCode) {
             html5QrCode.stop().then(() => html5QrCode.clear());
-        }
-    }
-
-    function toggleView(view) {
-        document.getElementById('pos-view').style.display = view === 'pos' ? 'flex' : 'none';
-        document.getElementById('pickup-view').style.display = view === 'pickup' ? 'flex' : 'none';
-        document.getElementById('serials-view').style.display = view === 'serials' ? 'flex' : 'none';
-    }
-
-    function openNewPickupModal() {
-        new bootstrap.Modal(document.getElementById('newPickupModal')).show();
-    }
-
-    function saveNewPickupOrder() {
-        const id = document.getElementById('new-online-id').value;
-        const cust = document.getElementById('new-cust-name').value;
-        const item = document.getElementById('new-cust-item').value;
-
-        if (!id || !cust || !item) return alert('برجاء إدخال كامل البيانات!');
-
-        pickupOrders.push({ id, customer: cust, item, status: 'جاهز للاستلام' });
-        localStorage.setItem('apple_pickup_orders_v3', JSON.stringify(pickupOrders));
-
-        // طباعة الملصق للصندوق
-        document.getElementById('lbl-id').innerText = id;
-        document.getElementById('lbl-cust').innerText = cust;
-        document.getElementById('lbl-item').innerText = item;
-        document.getElementById('printable-label').style.display = 'block';
-
-        window.print();
-        document.getElementById('printable-label').style.display = 'none';
-
-        bootstrap.Modal.getInstance(document.getElementById('newPickupModal')).hide();
-        renderPickupOrders();
-    }
-
-    function renderPickupOrders() {
-        const container = document.getElementById('pickup-orders-container');
-        document.getElementById('pickup-count').innerText = pickupOrders.length;
-        container.innerHTML = '';
-
-        pickupOrders.forEach((p, idx) => {
-            container.innerHTML += `
-                <div class="col-md-4">
-                    <div class="card apple-card p-3 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="fw-bold mb-0 text-primary">${p.id}</h6>
-                            <span class="badge bg-success">${p.status}</span>
-                        </div>
-                        <p class="mb-1"><strong>العميل:</strong> ${p.customer}</p>
-                        <p class="mb-3 text-muted"><strong>الجهاز:</strong> ${p.item}</p>
-                        <button class="btn btn-dark btn-sm w-100 fw-bold" onclick="deliverPickupOrder(${idx})">✔ تسليم العميل</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function deliverPickupOrder(idx) {
-        alert(`تم التسليم بنجاح للطلب ${pickupOrders[idx].id}`);
-        pickupOrders.splice(idx, 1);
-        localStorage.setItem('apple_pickup_orders_v3', JSON.stringify(pickupOrders));
-        renderPickupOrders();
-    }
-
-    function searchSerialNumber() {
-        const query = document.getElementById('search-serial-input').value.trim();
-        const resDiv = document.getElementById('serial-search-result');
-        const found = salesHistory.find(s => s.serial === query || s.invNo === query);
-
-        if (found) {
-            resDiv.innerHTML = `
-                <div class="alert alert-success mt-2">
-                    <h5>✔ تم العثور على الجهاز بالنظام:</h5>
-                    <p class="mb-1"><strong>رقم الفاتورة:</strong> ${found.invNo}</p>
-                    <p class="mb-1"><strong>تاريخ الشراء:</strong> ${found.date}</p>
-                    <p class="mb-1"><strong>iCloud العميل:</strong> ${found.icloud}</p>
-                    <p class="mb-1"><strong>حالة AppleCare+:</strong> ${found.appleCare}</p>
-                    <p class="mb-0"><strong>الإجمالي:</strong> ${found.total.toFixed(2)} ر.س</p>
-                </div>
-            `;
-        } else {
-            resDiv.innerHTML = `<div class="alert alert-danger mt-2">❌ لم يتم العثور على أي جهاز مباع بهذا الرقم التسلسلي.</div>`;
         }
     }
 </script>
